@@ -87,6 +87,18 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 
   var datos = null, elegida = 0;
 
+  // UTM de la publicidad: se guardan al llegar a la tienda para enviarlas con el pedido aunque el cliente navegue.
+  var UTM = (function () {
+    var campos = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"], u = {}, hay = false;
+    var q = new URLSearchParams(location.search);
+    campos.forEach(function (c) { if (q.get(c)) { u[c] = q.get(c); hay = true; } });
+    try {
+      if (hay) sessionStorage.setItem("rebajitas_cod_utm", JSON.stringify(u));
+      else u = JSON.parse(sessionStorage.getItem("rebajitas_cod_utm") || "{}");
+    } catch (e) { /* sin almacenamiento: se usan solo las de esta página */ }
+    return u;
+  })();
+
   function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function dinero(n, moneda) {
     var s = Number(n).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -179,7 +191,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Datos protegidos</div></div>' +
       '</form>' +
       '<div class="listo" hidden><div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m5 12 5 5 9-10"/></svg></div>' +
-      '<h2 id="l-t"></h2><p>Último paso: confírmanos tu pedido por WhatsApp para despacharlo.</p><div class="recap" id="recap"></div>' +
+      '<h2 id="l-t"></h2><p>Te enviamos un mensaje por WhatsApp para confirmar tu pedido. Respóndelo para que podamos despacharlo.</p><div class="recap" id="recap"></div>' +
       '<a class="wa" id="l-wa" target="_blank" rel="noopener">' + WHATSAPP.replace('fill="#25a35a"', 'fill="#fff"').replace('width="16" height="16"', 'width="22" height="22"') + 'Ir a WhatsApp a confirmar mi pedido</a></div>' +
       '</div></div></div>';
 
@@ -261,6 +273,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     cta.querySelector("b").textContent = "Enviando tu pedido…";
     valores.variante = VARIANTE;
     valores.oferta = datos.ofertas.indexOf(oferta());
+    valores.utm = UTM;
 
     fetch(SERVIDOR + "/api/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(valores) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
@@ -272,11 +285,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], ["Total al retirar", dinero(o.precio, datos.moneda)],
           ["WhatsApp", "+58 " + valores.telefono], ["Retiro", "TEALCA " + valores.oficina]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
-        var texto = "Hola, quiero confirmar mi pedido " + res.j.numero + ":\n" +
-          "• " + datos.titulo + " × " + o.cantidad + " (" + dinero(o.precio, datos.moneda) + ")\n" +
-          "• A nombre de: " + valores.nombre.trim() + " " + valores.apellido.trim() + "\n" +
-          "• Retiro en TEALCA " + valores.oficina + " (" + valores.ciudad.trim() + ", " + valores.estado + ")";
-        $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "") + "?text=" + encodeURIComponent(texto);
+$("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
         $("form").hidden = true;
         $(".listo").hidden = false;
         $(".sheet").scrollTop = 0;

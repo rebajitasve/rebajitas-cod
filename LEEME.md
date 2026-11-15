@@ -45,3 +45,4 @@ Ver `.env.example`. Nunca se sube a GitHub.
 ## Versiones
 - v0.1 — Etapa 1: formulario nuevo y creación de pedidos en Shopify (probado en modo prueba).
 - v0.2 — Oficinas TEALCA reales (131) y botón final "Ir a WhatsApp a confirmar mi pedido" (+58 412 225 4027).
+- v0.3 — Ofertas de AO Black Maca (1/2/3 unidades), datos del pedido con los mismos nombres que Releasit, UTM de anuncios, botón de WhatsApp sin mensaje escrito.

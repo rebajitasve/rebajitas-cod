@@ -1,6 +1,7 @@
 """Reglas de negocio del formulario. Todo lo que decide precios, validaciones y cómo se arma el pedido vive aquí."""
 import json
 import re
+import unicodedata
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
@@ -19,28 +20,38 @@ with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 
-# Ofertas por cantidad (etapa 2). Clave: ID de la variante en Shopify.
-# Cada oferta: cantidad y precio TOTAL. Si una variante no está aquí, se vende 1 unidad al precio de Shopify.
-OFERTAS: dict[str, list[dict]] = {}
+# Ofertas por cantidad. Clave: nombre del producto en Shopify (sin importar mayúsculas/acentos) o ID de la variante.
+# Cada oferta: cantidad y precio TOTAL. El precio de lista por unidad es el de la oferta de 1 unidad.
+# Si un producto no está aquí, se vende 1 unidad al precio que tenga en Shopify.
+OFERTAS: dict[str, list[dict]] = {
+    "AO BLACK MACA": [
+        {"cantidad": 1, "precio": 37500},
+        {"cantidad": 2, "precio": 57500, "etiqueta": "Más vendido"},
+        {"cantidad": 3, "precio": 65500, "etiqueta": "Mejor precio"},
+    ],
+}
 
-# WhatsApp donde el cliente confirma su pedido al terminar (solo dígitos, con código de país).
+# WhatsApp que abre el botón final (el mismo desde donde Pancake escribe). Solo dígitos, con código de país.
 WHATSAPP_CONFIRMACION = "584122254027"
 
 ETIQUETAS_PEDIDO = ["COD", "Formulario Rebajitas"]
 ORIGEN = "Formulario Rebajitas COD"
 
 
-def ofertas_de(variante_id: str, precio_shopify: Decimal) -> list[dict]:
-    """Lista de ofertas que se muestran para una variante. Precios en Decimal, siempre del servidor."""
-    if variante_id in OFERTAS:
-        return [{"cantidad": o["cantidad"], "precio": Decimal(str(o["precio"])),
-                 "antes": precio_shopify * o["cantidad"], "etiqueta": o.get("etiqueta")}
-                for o in OFERTAS[variante_id]]
-    return [{"cantidad": 1, "precio": precio_shopify, "antes": precio_shopify, "etiqueta": None}]
+def _clave(texto: str) -> str:
+    return unicodedata.normalize("NFD", texto or "").encode("ascii", "ignore").decode().upper().strip()
 
 
-def precio_unitario(oferta: dict) -> Decimal:
-    return (oferta["precio"] / oferta["cantidad"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+def ofertas_de(variante_id: str, titulo: str, precio_shopify: Decimal) -> list[dict]:
+    """Ofertas que se muestran para un producto. Precios en Decimal, siempre del servidor.
+    'lista' = precio por unidad sin descuento; 'antes' = lista × cantidad (el precio tachado)."""
+    config = OFERTAS.get(str(variante_id)) or {_clave(k): v for k, v in OFERTAS.items()}.get(_clave(titulo))
+    if not config:
+        return [{"cantidad": 1, "precio": precio_shopify, "lista": precio_shopify, "antes": precio_shopify, "etiqueta": None}]
+    base = next((o for o in config if o["cantidad"] == 1), config[0])
+    lista = (Decimal(str(base["precio"])) / base["cantidad"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return [{"cantidad": o["cantidad"], "precio": Decimal(str(o["precio"])), "lista": lista,
+             "antes": lista * o["cantidad"], "etiqueta": o.get("etiqueta")} for o in config]
 
 
 def normalizar_telefono(texto: str) -> str | None:
@@ -83,8 +94,14 @@ def validar_datos(datos: dict) -> tuple[dict, dict]:
     return limpio, errores
 
 
-def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str) -> dict:
-    """Arma el pedido tal como se envía a Shopify (orderCreate)."""
+UTM_CAMPOS = [("utm_term", "UTM term"), ("utm_content", "UTM content"), ("utm_campaign", "UTM campaign"),
+              ("utm_medium", "UTM medium"), ("utm_source", "UTM source")]
+
+
+def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str, utm: dict | None = None) -> dict:
+    """Arma el pedido tal como se envía a Shopify (orderCreate).
+    Los 'datos adicionales' copian los nombres que usaba Releasit, para que Pancake, Sheets y Dropanas los lean igual."""
+    dinero = lambda valor: {"shopMoney": {"amount": f"{valor:.2f}", "currencyCode": moneda}}
     direccion = {
         "firstName": datos["nombre"],
         "lastName": datos["apellido"],
@@ -94,24 +111,35 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         "countryCode": "VE",
         "phone": datos["telefono"],
     }
-    return {
+    utm = utm or {}
+    atributos = [{"key": nombre, "value": limpiar(utm.get(campo), 150)} for campo, nombre in UTM_CAMPOS if limpiar(utm.get(campo))]
+    atributos += [
+        {"key": "Country code", "value": "VE"},
+        {"key": "Nombre", "value": datos["nombre"]},
+        {"key": "Apellido", "value": datos["apellido"]},
+        {"key": "Teléfono", "value": datos["telefono"].removeprefix("+58")},
+        {"key": "Estado", "value": datos["estado"].upper()},
+        {"key": "Ciudad", "value": datos["ciudad"]},
+        {"key": "Oficina de TEALCA", "value": datos["oficina"]},
+        {"key": "IP address", "value": ip or "desconocida"},
+    ]
+    pedido = {
         "currency": moneda,
         "financialStatus": "PENDING",
         "phone": datos["telefono"],
         "lineItems": [{
             "variantId": f"gid://shopify/ProductVariant/{variante_id}",
             "quantity": oferta["cantidad"],
-            "priceSet": {"shopMoney": {"amount": str(precio_unitario(oferta)), "currencyCode": moneda}},
+            "priceSet": dinero(oferta["lista"]),
         }],
         "shippingAddress": direccion,
         "billingAddress": direccion,
         "tags": ETIQUETAS_PEDIDO,
         "note": f"Pago al recibir. Retiro en oficina TEALCA: {datos['oficina']} ({datos['ciudad']}, {datos['estado']}).",
-        "customAttributes": [
-            {"key": "Origen", "value": ORIGEN},
-            {"key": "Estado", "value": datos["estado"]},
-            {"key": "Ciudad", "value": datos["ciudad"]},
-            {"key": "Oficina TEALCA", "value": datos["oficina"]},
-            {"key": "IP del cliente", "value": ip or "desconocida"},
-        ],
+        "customAttributes": atributos,
     }
+    descuento = oferta["antes"] - oferta["precio"]
+    if descuento > 0:
+        pedido["discountCode"] = {"itemFixedDiscountCode": {
+            "code": f"OFERTA {oferta['cantidad']} UNIDADES", "amountSet": dinero(descuento)}}
+    return pedido

@@ -43,10 +43,14 @@ def test_validacion_marca_campos_vacios():
 def test_pedido_bien_armado():
     datos, errores = reglas.validar_datos(BUENOS)
     assert not errores
-    oferta = reglas.ofertas_de("123", Decimal("32450"))[0]
-    p = reglas.armar_pedido(datos, "123", oferta, "VES", "1.2.3.4")
+    oferta = reglas.ofertas_de("123", "Otro producto", Decimal("32450"))[0]
+    p = reglas.armar_pedido(datos, "123", oferta, "VES", "1.2.3.4", {"utm_source": "Facebook_Mobile_Feed"})
     assert p["lineItems"][0]["variantId"] == "gid://shopify/ProductVariant/123"
     assert p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "32450.00"
+    assert "discountCode" not in p
+    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
+    assert atr["Teléfono"] == "4121234567" and atr["Estado"] == "CARABOBO" and atr["Oficina de TEALCA"] == "SAN DIEGO"
+    assert atr["IP address"] == "1.2.3.4" and atr["UTM source"] == "Facebook_Mobile_Feed" and "UTM term" not in atr
     assert p["shippingAddress"]["phone"] == "+584121234567"
     assert p["shippingAddress"]["address1"] == "Oficina TEALCA: SAN DIEGO"
     assert "COD" in p["tags"] and p["financialStatus"] == "PENDING"
@@ -58,7 +62,7 @@ def test_servidor_modo_prueba():
     assert "rebajitas-cod" in c.get("/prueba").text
     assert c.get("/formulario.js").status_code == 200
     prod = c.get("/api/producto/prueba").json()
-    assert prod["ofertas"][0]["precio"] == 32450.0 and "Zulia" in prod["estados"]
+    assert [o["precio"] for o in prod["ofertas"]] == [37500.0, 57500.0, 65500.0] and "Zulia" in prod["estados"]
     assert prod["whatsapp"] == "584122254027"
 
     r = c.post("/api/pedido", json=BUENOS)
@@ -103,7 +107,7 @@ def test_shopify_real_simulado(monkeypatch):
     v = shopify.leer_variante("123", cliente)
     assert v["precio"] == Decimal("32450.00") and v["moneda"] == "VES" and v["variante"] == ""
     datos, _ = reglas.validar_datos(BUENOS)
-    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["precio"])[0], "VES", ""), cliente)
+    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["titulo"], v["precio"])[2], "VES", ""), cliente)
     assert r["numero"] == "#1001"
     assert enviados[1]["variables"]["options"]["sendReceipt"] is False
 
@@ -115,3 +119,13 @@ def test_oficinas_tealca():
     assert "oficina" in errores
     _, errores = reglas.validar_datos({**BUENOS, "estado": "Amazonas", "oficina": "Puerto Ayacucho"})
     assert not errores  # estado sin lista: se acepta lo que escriba el cliente
+
+
+def test_ofertas_ao_black_maca():
+    o = reglas.ofertas_de("999", "AO Black Maca", Decimal("32450"))
+    assert [(x["cantidad"], x["precio"], x["antes"]) for x in o] == [
+        (1, Decimal("37500"), Decimal("37500.00")), (2, Decimal("57500"), Decimal("75000.00")), (3, Decimal("65500"), Decimal("112500.00"))]
+    datos, _ = reglas.validar_datos(BUENOS)
+    p = reglas.armar_pedido(datos, "999", o[2], "VES", "")
+    assert p["lineItems"][0]["quantity"] == 3 and p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "37500.00"
+    assert p["discountCode"]["itemFixedDiscountCode"]["amountSet"]["shopMoney"]["amount"] == "47000.00"  # 112.500 - 65.500

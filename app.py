@@ -66,7 +66,7 @@ def producto(variante: str):
     except shopify.ErrorShopify as e:
         log.warning("No se pudo leer la variante %s: %s", variante, e)
         return JSONResponse({"error": "No pudimos cargar el producto"}, status_code=502)
-    ofertas = reglas.ofertas_de(variante, v["precio"])
+    ofertas = reglas.ofertas_de(variante, v["titulo"], v["precio"])
     return {
         "titulo": v["titulo"], "variante": v["variante"], "disponible": v["disponible"], "moneda": v["moneda"],
         "ofertas": [{"cantidad": o["cantidad"], "precio": _numero(o["precio"]), "antes": _numero(o["antes"]),
@@ -110,12 +110,13 @@ async def pedido(request: Request):
         v = shopify.leer_variante(variante)
         if not v["disponible"]:
             return JSONResponse({"error": "Este producto está agotado por ahora."}, status_code=409)
-        ofertas = reglas.ofertas_de(variante, v["precio"])
+        ofertas = reglas.ofertas_de(variante, v["titulo"], v["precio"])
         try:
             oferta = ofertas[int(cuerpo.get("oferta", 0))]
         except (ValueError, IndexError, TypeError):
             oferta = ofertas[0]
-        resultado = shopify.crear_pedido(reglas.armar_pedido(datos, variante, oferta, v["moneda"], ip))
+        utm = cuerpo.get("utm") if isinstance(cuerpo.get("utm"), dict) else {}
+        resultado = shopify.crear_pedido(reglas.armar_pedido(datos, variante, oferta, v["moneda"], ip, utm))
     except shopify.ErrorShopify as e:
         log.error("Pedido NO creado (variante %s): %s", variante, e)
         return JSONResponse({"error": "No pudimos registrar tu pedido. Intenta de nuevo en un momento o escríbenos por WhatsApp."},
