@@ -1,0 +1,10 @@
+# Llaves y secretos: NUNCA se suben a GitHub
+.env
+.env.*
+!.env.example
+
+# Archivos internos de Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
