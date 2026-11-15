@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 import app as servidor  # noqa: E402
 
 BUENOS = {"nombre": "Juan", "apellido": "Hernández", "telefono": "0412-123.45.67",
-          "estado": "Carabobo", "ciudad": "Valencia", "oficina": "Valencia Centro", "variante": "123", "oferta": 0}
+          "estado": "Carabobo", "ciudad": "Valencia", "oficina": "SAN DIEGO", "variante": "123", "oferta": 0}
 
 
 @pytest.fixture(autouse=True)
@@ -48,7 +48,7 @@ def test_pedido_bien_armado():
     assert p["lineItems"][0]["variantId"] == "gid://shopify/ProductVariant/123"
     assert p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "32450.00"
     assert p["shippingAddress"]["phone"] == "+584121234567"
-    assert p["shippingAddress"]["address1"] == "Oficina TEALCA: Valencia Centro"
+    assert p["shippingAddress"]["address1"] == "Oficina TEALCA: SAN DIEGO"
     assert "COD" in p["tags"] and p["financialStatus"] == "PENDING"
 
 
@@ -105,3 +105,12 @@ def test_shopify_real_simulado(monkeypatch):
     r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["precio"])[0], "VES", ""), cliente)
     assert r["numero"] == "#1001"
     assert enviados[1]["variables"]["options"]["sendReceipt"] is False
+
+
+def test_oficinas_tealca():
+    assert all(e in reglas.ESTADOS for e in reglas.OFICINAS_TEALCA)
+    assert "SAN DIEGO" in reglas.OFICINAS_TEALCA["Carabobo"]
+    _, errores = reglas.validar_datos({**BUENOS, "oficina": "OFICINA INVENTADA"})
+    assert "oficina" in errores
+    _, errores = reglas.validar_datos({**BUENOS, "estado": "Amazonas", "oficina": "Puerto Ayacucho"})
+    assert not errores  # estado sin lista: se acepta lo que escriba el cliente

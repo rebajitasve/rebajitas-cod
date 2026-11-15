@@ -1,6 +1,8 @@
 """Reglas de negocio del formulario. Todo lo que decide precios, validaciones y cómo se arma el pedido vive aquí."""
+import json
 import re
 from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
 
 ESTADOS = [
     "Amazonas", "Anzoátegui", "Apure", "Aragua", "Barinas", "Bolívar", "Carabobo", "Cojedes",
@@ -9,9 +11,10 @@ ESTADOS = [
     "Yaracuy", "Zulia",
 ]
 
-# Oficinas TEALCA por estado. Si un estado no tiene lista, el cliente escribe la oficina a mano.
-# Pendiente: llenar con la lista real (la que hoy usa Releasit).
-OFICINAS_TEALCA: dict[str, list[str]] = {}
+# Oficinas TEALCA por estado, desde oficinas_tealca.json (lista de Mike, nov. 2026).
+# Si un estado no tiene oficinas en la lista, el cliente escribe la oficina a mano.
+with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _f:
+    OFICINAS_TEALCA: dict[str, list[str]] = json.load(_f)
 
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
