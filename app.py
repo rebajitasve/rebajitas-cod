@@ -73,6 +73,7 @@ def producto(variante: str):
                      "etiqueta": o["etiqueta"]} for o in ofertas],
         "estados": reglas.ESTADOS,
         "oficinas": reglas.OFICINAS_TEALCA,
+        "whatsapp": reglas.WHATSAPP_CONFIRMACION,
         "modo_prueba": config.MODO_PRUEBA,
     }
 

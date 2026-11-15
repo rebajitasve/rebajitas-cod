@@ -8,6 +8,12 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 2. El botón muestra el precio que da el servidor (leído de Shopify). Si el servidor no responde, el botón no aparece y la tienda sigue normal.
 3. El cliente llena: nombre, apellido, WhatsApp (+58), estado, ciudad, oficina TEALCA.
 4. El servidor valida todo otra vez, decide el precio (nunca confía en el navegador) y crea el pedido en Shopify.
+5. Pantalla final: resumen del pedido y botón verde **"Ir a WhatsApp a confirmar mi pedido"**, que abre WhatsApp al +58 412 225 4027 con un mensaje ya escrito (número de pedido, producto, total, nombre y oficina). El número se cambia en `reglas.py` (`WHATSAPP_CONFIRMACION`).
+
+## Oficinas TEALCA
+- 131 oficinas en `oficinas_tealca.json`, tomadas del Excel de Mike (nov. 2026). La lista de oficinas aparece al elegir el estado; solo se aceptan oficinas de la lista.
+- Amazonas no tiene oficinas en la lista: ahí el cliente escribe la oficina a mano.
+- Revisar: en Carabobo aparece "CAUCAGUA–HIGUEROTE–BARLOVENTO–TACARIGUA", que parece de Miranda.
 
 ## Cómo queda el pedido en Shopify
 - Producto y cantidad de la oferta elegida, con el precio del servidor. Estado de pago: **pendiente**.
@@ -36,6 +42,5 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 | 5 | Google Sheets directo | Solo si hace falta (hoy lo llena Releasit) |
 
 ## Datos pendientes de Mike
-- Lista real de oficinas TEALCA por estado (mientras tanto el cliente la escribe a mano).
 - Precios reales de 2 y 3 unidades de AO Black Maca.
 - Captura de un pedido de Releasit en Shopify (para copiar el formato).

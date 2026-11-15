@@ -76,7 +76,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 .listo p{margin:0;color:var(--muted);max-width:32ch}
 .recap{width:100%;background:var(--field);border-radius:var(--r);padding:14px 16px;text-align:left;font-size:14px;display:flex;flex-direction:column;gap:6px}
 .recap div{display:flex;justify-content:space-between;gap:12px} .recap span:first-child{color:var(--muted)} .recap span:last-child{font-weight:600;text-align:right}
-.btn2{border:0;border-radius:12px;background:var(--field);color:var(--ink);font-weight:700;cursor:pointer;padding:12px 20px;font-size:15px}
+.wa{width:100%;border-radius:var(--r);background:#1fa855;color:#fff;text-decoration:none;font-weight:800;font-size:16.5px;padding:15px 16px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 24px -10px rgba(31,168,85,.75)}
+.wa:hover{filter:brightness(1.05)} .wa:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 `;
@@ -178,13 +179,12 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Datos protegidos</div></div>' +
       '</form>' +
       '<div class="listo" hidden><div class="check"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m5 12 5 5 9-10"/></svg></div>' +
-      '<h2 id="l-t"></h2><p>En unos minutos te escribimos por WhatsApp para confirmar los datos.</p><div class="recap" id="recap"></div>' +
-      '<button class="btn2" type="button" id="l-cerrar">Seguir viendo la tienda</button></div>' +
+      '<h2 id="l-t"></h2><p>Último paso: confírmanos tu pedido por WhatsApp para despacharlo.</p><div class="recap" id="recap"></div>' +
+      '<a class="wa" id="l-wa" target="_blank" rel="noopener">' + WHATSAPP.replace('fill="#25a35a"', 'fill="#fff"').replace('width="16" height="16"', 'width="22" height="22"') + 'Ir a WhatsApp a confirmar mi pedido</a></div>' +
       '</div></div></div>';
 
     var $ = function (s) { return sombra.querySelector(s); };
     $(".cerrar").addEventListener("click", cerrar);
-    $("#l-cerrar").addEventListener("click", cerrar);
     $(".fondo").addEventListener("click", function (e) { if (e.target === e.currentTarget) cerrar(); });
     sombra.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(); });
 
@@ -272,6 +272,11 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], ["Total al retirar", dinero(o.precio, datos.moneda)],
           ["WhatsApp", "+58 " + valores.telefono], ["Retiro", "TEALCA " + valores.oficina]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
+        var texto = "Hola, quiero confirmar mi pedido " + res.j.numero + ":\n" +
+          "• " + datos.titulo + " × " + o.cantidad + " (" + dinero(o.precio, datos.moneda) + ")\n" +
+          "• A nombre de: " + valores.nombre.trim() + " " + valores.apellido.trim() + "\n" +
+          "• Retiro en TEALCA " + valores.oficina + " (" + valores.ciudad.trim() + ", " + valores.estado + ")";
+        $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "") + "?text=" + encodeURIComponent(texto);
         $("form").hidden = true;
         $(".listo").hidden = false;
         $(".sheet").scrollTop = 0;

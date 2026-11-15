@@ -23,6 +23,9 @@ PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 # Cada oferta: cantidad y precio TOTAL. Si una variante no está aquí, se vende 1 unidad al precio de Shopify.
 OFERTAS: dict[str, list[dict]] = {}
 
+# WhatsApp donde el cliente confirma su pedido al terminar (solo dígitos, con código de país).
+WHATSAPP_CONFIRMACION = "584122254027"
+
 ETIQUETAS_PEDIDO = ["COD", "Formulario Rebajitas"]
 ORIGEN = "Formulario Rebajitas COD"
 

@@ -5,6 +5,7 @@ App propia para la tienda Shopify: botón "Pagar al recibir" + formulario + pedi
 ## Archivos
 - `app.py` — el servidor (entrega el formulario y crea los pedidos).
 - `reglas.py` — reglas de negocio: estados, oficinas TEALCA, ofertas, validaciones, cómo se arma el pedido.
+- `oficinas_tealca.json` — oficinas TEALCA por estado (para cambiarlas, editar este archivo).
 - `shopify.py` — la conexión con Shopify (leer producto, crear pedido).
 - `estaticos/formulario.js` — el botón y el formulario que ve el cliente.
 - `estaticos/prueba.html` — página que imita la del producto, para probar.
@@ -43,3 +44,4 @@ Ver `.env.example`. Nunca se sube a GitHub.
 
 ## Versiones
 - v0.1 — Etapa 1: formulario nuevo y creación de pedidos en Shopify (probado en modo prueba).
+- v0.2 — Oficinas TEALCA reales (131) y botón final "Ir a WhatsApp a confirmar mi pedido" (+58 412 225 4027).
