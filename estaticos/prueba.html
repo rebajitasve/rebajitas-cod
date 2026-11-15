@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba · Formulario Rebajitas COD</title>
+<style>
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f6f7f6;color:#14181b}
+  .pag{max-width:960px;margin:0 auto;padding:24px 16px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  @media (max-width:720px){.pag{grid-template-columns:1fr}}
+  .foto{aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,#2d2d2d,#0b0b0b);display:grid;place-items:center;color:#c9a14a;font-weight:800;font-size:28px;letter-spacing:.08em}
+  h1{margin:0 0 8px;font-size:28px} .precio{font-size:22px;font-weight:700;margin:0 0 20px}
+  .nota{background:#fff4d6;border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:20px}
+</style>
+</head>
+<body>
+  <div class="pag">
+    <div class="foto">AO BLACK MACA</div>
+    <div>
+      <div class="nota">Página de prueba que imita la página del producto en tu tienda.</div>
+      <h1>AO Black Maca</h1>
+      <p class="precio">Bs.S. 32.450,00</p>
+      <!-- Esto es lo mismo que se pega en Shopify (bloque "Liquid personalizado") -->
+      <div id="rebajitas-cod" data-variante="prueba"></div>
+      <script src="/formulario.js" defer></script>
+      <p>Energía y vitalidad natural. Texto de ejemplo de la descripción del producto.</p>
+    </div>
+  </div>
+</body>
+</html>

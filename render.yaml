@@ -1,0 +1,28 @@
+# Receta para Render: crea el servidor del formulario con un solo paso.
+# Las llaves NO van aquí: Render las pide en su página.
+services:
+  - type: web
+    name: rebajitas-cod
+    runtime: python
+    plan: starter            # US$ 7/mes: siempre encendido. El gratis se duerme y el cliente esperaría casi 1 minuto.
+    region: virginia
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: HOST
+        value: 0.0.0.0
+      - key: MODO_PRUEBA       # "0" = crea pedidos reales
+        value: "1"
+      - key: SHOPIFY_TIENDA    # nombre.myshopify.com
+        sync: false
+      - key: SHOPIFY_TOKEN     # o bien SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET
+        sync: false
+      - key: SHOPIFY_CLIENT_ID
+        sync: false
+      - key: SHOPIFY_CLIENT_SECRET
+        sync: false
+      - key: TIENDA_ORIGENES   # direcciones de tu tienda, separadas por coma
+        sync: false
