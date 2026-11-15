@@ -62,9 +62,20 @@ PRODUCTO_PRUEBA = {"titulo": "AO Black Maca", "variante": "", "precio": Decimal(
                    "disponible": True, "moneda": "VES"}
 
 
+def hay_llaves() -> bool:
+    return bool(config.SHOPIFY_TIENDA and (config.SHOPIFY_TOKEN or (config.SHOPIFY_CLIENT_ID and config.SHOPIFY_CLIENT_SECRET)))
+
+
+def probar_conexion(cliente=None) -> str:
+    """Lee solo el nombre de la tienda, para confirmar que las llaves funcionan."""
+    return _consulta("{ shop { name } }", {}, cliente)["shop"]["name"]
+
+
 def leer_variante(variante_id: str, cliente=None) -> dict:
-    """Nombre, precio y disponibilidad de una variante, más la moneda de la tienda."""
-    if config.MODO_PRUEBA:
+    """Nombre, precio y disponibilidad de una variante, más la moneda de la tienda.
+    En modo prueba se lee el producto real si hay llaves (leer no cambia nada en la tienda);
+    sin llaves, o en la página de prueba, se usa un producto de ejemplo."""
+    if config.MODO_PRUEBA and (not str(variante_id).isdigit() or not hay_llaves()):
         return dict(PRODUCTO_PRUEBA)
     datos = _consulta("""
         query($id: ID!) {

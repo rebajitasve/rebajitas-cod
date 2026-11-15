@@ -41,8 +41,12 @@ Ver `.env.example`. Nunca se sube a GitHub.
 
 ## Render
 `render.yaml` crea el servicio `rebajitas-cod` (plan Starter, US$ 7/mes, siempre encendido para no hacer esperar al cliente).
+Solo pide dos llaves: `SHOPIFY_CLIENT_ID` y `SHOPIFY_CLIENT_SECRET` (de dev.shopify.com → Rebajitas COD → Configuración).
+Para pasar a pedidos reales: en Render → rebajitas-cod → Environment → `MODO_PRUEBA` = `0`.
+Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice si está conectada y en qué modo).
 
 ## Versiones
 - v0.1 — Etapa 1: formulario nuevo y creación de pedidos en Shopify (probado en modo prueba).
 - v0.2 — Oficinas TEALCA reales (131) y botón final "Ir a WhatsApp a confirmar mi pedido" (+58 412 225 4027).
 - v0.3 — Ofertas de AO Black Maca (1/2/3 unidades), datos del pedido con los mismos nombres que Releasit, UTM de anuncios, botón de WhatsApp sin mensaje escrito.
+- v0.4 — Modo prueba lee el producto real sin crear pedidos; pantalla de estado de la conexión; direcciones de la tienda ya configuradas en `render.yaml`.

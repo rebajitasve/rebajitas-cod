@@ -16,13 +16,11 @@ services:
         value: 0.0.0.0
       - key: MODO_PRUEBA       # "0" = crea pedidos reales
         value: "1"
-      - key: SHOPIFY_TIENDA    # nombre.myshopify.com
+      - key: SHOPIFY_TIENDA    # dirección interna de la tienda en Shopify
+        value: e1bvrm-ze.myshopify.com
+      - key: SHOPIFY_CLIENT_ID      # "ID de cliente" de la app en dev.shopify.com
         sync: false
-      - key: SHOPIFY_TOKEN     # o bien SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET
+      - key: SHOPIFY_CLIENT_SECRET  # "Secreto del cliente" de la app en dev.shopify.com
         sync: false
-      - key: SHOPIFY_CLIENT_ID
-        sync: false
-      - key: SHOPIFY_CLIENT_SECRET
-        sync: false
-      - key: TIENDA_ORIGENES   # direcciones de tu tienda, separadas por coma
-        sync: false
+      - key: TIENDA_ORIGENES   # direcciones de la tienda autorizadas a enviar el formulario
+        value: https://rebajitasve.com,https://www.rebajitasve.com,https://e1bvrm-ze.myshopify.com

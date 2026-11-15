@@ -1,5 +1,6 @@
 """Servidor del formulario: entrega el formulario a la tienda y crea los pedidos en Shopify."""
 import logging
+from html import escape
 import threading
 import time
 from decimal import Decimal
@@ -39,6 +40,30 @@ def ip_de(request: Request) -> str:
 
 def _numero(valor: Decimal) -> float:
     return float(valor)
+
+
+@app.get("/", response_class=HTMLResponse)
+def inicio():
+    """Pantalla que se ve al abrir la app desde el panel de Shopify."""
+    if not shopify.hay_llaves():
+        conexion, ok = "Faltan las llaves de Shopify en Render", False
+    else:
+        try:
+            conexion, ok = f"Conectada a la tienda «{shopify.probar_conexion()}»", True
+        except shopify.ErrorShopify as e:
+            log.warning("Prueba de conexión fallida: %s", e)
+            conexion, ok = "Las llaves no funcionan. Revisa el ID y el secreto del cliente en Render", False
+    modo = "Modo prueba: el formulario NO crea pedidos reales" if config.MODO_PRUEBA else "Modo real: el formulario crea pedidos"
+    color = "#0d7a50" if ok else "#c2372f"
+    return f"""<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rebajitas COD</title>
+<body style="font-family:system-ui,sans-serif;background:#f4f7f5;color:#14181b;margin:0;padding:32px 16px">
+<div style="max-width:520px;margin:auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.06)">
+<h1 style="margin:0 0 16px;font-size:22px">Rebajitas COD</h1>
+<p style="margin:8px 0;color:{color};font-weight:700">{"✔" if ok else "✖"} {escape(conexion)}</p>
+<p style="margin:8px 0;font-weight:600">{modo}</p>
+<p style="margin:16px 0 0;color:#5d6865;font-size:14px">Esta app maneja el botón "Pagar al recibir" de la tienda. No hay nada que configurar aquí.</p>
+</div></body></html>"""
 
 
 @app.get("/salud")

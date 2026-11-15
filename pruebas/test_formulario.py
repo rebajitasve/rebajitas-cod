@@ -59,6 +59,7 @@ def test_pedido_bien_armado():
 def test_servidor_modo_prueba():
     c = TestClient(servidor.app)
     assert c.get("/salud").json()["ok"]
+    assert "Rebajitas COD" in c.get("/").text
     assert "rebajitas-cod" in c.get("/prueba").text
     assert c.get("/formulario.js").status_code == 200
     prod = c.get("/api/producto/prueba").json()
@@ -129,3 +130,23 @@ def test_ofertas_ao_black_maca():
     p = reglas.armar_pedido(datos, "999", o[2], "VES", "")
     assert p["lineItems"][0]["quantity"] == 3 and p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "37500.00"
     assert p["discountCode"]["itemFixedDiscountCode"]["amountSet"]["shopMoney"]["amount"] == "47000.00"  # 112.500 - 65.500
+
+
+def test_modo_prueba_lee_producto_real_pero_no_crea_pedidos(monkeypatch):
+    monkeypatch.setattr(config, "MODO_PRUEBA", True)
+    monkeypatch.setattr(config, "SHOPIFY_TIENDA", "tienda.myshopify.com")
+    monkeypatch.setattr(config, "SHOPIFY_TOKEN", "x")
+    llamadas = []
+
+    def responder(request):
+        llamadas.append(json.loads(request.content)["query"])
+        return httpx.Response(200, json={"data": {
+            "productVariant": {"title": "Default Title", "price": "37500.00", "availableForSale": True,
+                               "product": {"title": "AO Black Maca"}},
+            "shop": {"currencyCode": "VES"}}})
+
+    cliente = httpx.Client(transport=httpx.MockTransport(responder))
+    assert shopify.leer_variante("123", cliente)["precio"] == Decimal("37500.00")
+    assert shopify.leer_variante("prueba", cliente)["precio"] == Decimal("32450.00")  # página de prueba
+    assert shopify.crear_pedido({}, cliente)["numero"].startswith("#PRUEBA")
+    assert len(llamadas) == 1 and "orderCreate" not in llamadas[0]

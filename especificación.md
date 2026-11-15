@@ -33,6 +33,14 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - Canal: aparecerá el nombre de nuestra app en Shopify (antes decía "Releasit COD Form").
 - No se envía correo de confirmación de Shopify al cliente; se descuenta el inventario.
 
+## Modo prueba y pantalla de estado
+- `MODO_PRUEBA=1`: el formulario lee el producto y precio **reales** de Shopify (si hay llaves) pero **no crea pedidos**; devuelve números `#PRUEBA-…`. La página `/prueba` usa un producto de ejemplo.
+- La dirección principal del servidor (`/`, la que abre Shopify al tocar la app en el panel) muestra si la conexión con Shopify funciona y si está en modo prueba o real.
+
+## Tienda
+- Shopify: `e1bvrm-ze.myshopify.com` · Pública: `rebajitasve.com`
+- App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
+
 ## Protecciones
 - Teléfono: solo celulares venezolanos (412, 414, 416, 422, 424, 426), con o sin 0 o +58.
 - Pedido repetido: si el mismo teléfono pide el mismo producto en menos de 3 minutos, no se crea otro (se devuelve el mismo número).
