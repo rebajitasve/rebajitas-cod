@@ -17,7 +17,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 log = logging.getLogger("cod")
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+# Direcciones de la tienda (config) + vistas previas de temas de Shopify (dirección temporal *.shopifypreview.com).
 app.add_middleware(CORSMiddleware, allow_origins=config.TIENDA_ORIGENES,
+                   allow_origin_regex=r"https://[a-z0-9-]+\.shopifypreview\.com",
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 ESTATICOS = config.CARPETA / "estaticos"

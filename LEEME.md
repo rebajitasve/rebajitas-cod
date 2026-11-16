@@ -50,3 +50,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.2 — Oficinas TEALCA reales (131) y botón final "Ir a WhatsApp a confirmar mi pedido" (+58 412 225 4027).
 - v0.3 — Ofertas de AO Black Maca (1/2/3 unidades), datos del pedido con los mismos nombres que Releasit, UTM de anuncios, botón de WhatsApp sin mensaje escrito.
 - v0.4 — Modo prueba lee el producto real sin crear pedidos; pantalla de estado de la conexión; direcciones de la tienda ya configuradas en `render.yaml`.
+- v0.5 — Se permite la vista previa de temas de Shopify (*.shopifypreview.com) y, solo en vista previa, el bloque explica por qué no aparece el botón.

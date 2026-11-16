@@ -150,3 +150,11 @@ def test_modo_prueba_lee_producto_real_pero_no_crea_pedidos(monkeypatch):
     assert shopify.leer_variante("prueba", cliente)["precio"] == Decimal("32450.00")  # página de prueba
     assert shopify.crear_pedido({}, cliente)["numero"].startswith("#PRUEBA")
     assert len(llamadas) == 1 and "orderCreate" not in llamadas[0]
+
+
+def test_vista_previa_de_shopify_permitida():
+    c = TestClient(servidor.app)
+    r = c.get("/api/producto/prueba", headers={"Origin": "https://abc123xyz.shopifypreview.com"})
+    assert r.headers.get("access-control-allow-origin") == "https://abc123xyz.shopifypreview.com"
+    r = c.get("/api/producto/prueba", headers={"Origin": "https://otra-tienda.com"})
+    assert "access-control-allow-origin" not in r.headers

@@ -120,7 +120,21 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
     })
-    .catch(function () { /* Si el servidor no responde, no se muestra el botón y la tienda sigue normal. */ });
+    .catch(function (err) {
+      // Si el servidor no responde, no se muestra el botón y la tienda sigue normal.
+      // Solo en vista previa del tema (no la ven los clientes) se muestra el motivo, para poder arreglarlo.
+      var motivo = !VARIANTE ? "falta el producto en el bloque"
+        : err && err.message === "502" ? "el servidor no pudo leer el producto en Shopify (revisa la conexión en " + SERVIDOR + ")"
+        : err && /^\d+$/.test(err.message) ? "el servidor respondió con error " + err.message
+        : "no se pudo conectar con el servidor (" + SERVIDOR + ") desde esta dirección: " + location.hostname;
+      if (window.console) console.warn("Rebajitas COD: " + motivo);
+      var preview = /shopifypreview\.com$/.test(location.hostname) || /[?&](preview_theme_id|oseid)=/.test(location.search) ||
+        (window.Shopify && window.Shopify.designMode);
+      if (preview) {
+        sombraBoton.querySelector(".w").insertAdjacentHTML("beforeend",
+          '<div class="error">Rebajitas COD (solo visible en vista previa): ' + esc(motivo) + "</div>");
+      }
+    });
 
   boton.addEventListener("click", abrir);
 
