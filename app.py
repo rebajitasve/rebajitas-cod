@@ -106,6 +106,7 @@ def producto(variante: str):
         "estados": reglas.ESTADOS,
         "oficinas": reglas.OFICINAS_TEALCA,
         "ciudades": reglas.CIUDADES,
+        "domicilio": reglas.ENTREGA_DOMICILIO,
         "whatsapp": reglas.WHATSAPP_CONFIRMACION,
         "modo_prueba": config.MODO_PRUEBA,
     }

@@ -82,6 +82,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .campo label{font-size:13px;font-weight:600}
 #ctrl-ciudad-otra{margin-top:2px}
+.ctrl select.tipo{width:auto;flex:none;padding:0 6px 0 14px;font-weight:700;border-right:1.5px solid var(--line);border-radius:12px 0 0 12px}
+.ctrl textarea{width:100%;min-width:0;min-height:76px;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:12px 14px;outline:none;resize:vertical;border-radius:12px}
 .ctrl{position:relative;display:flex;align-items:center;background:var(--field);border:1.5px solid transparent;border-radius:12px;transition:border-color .15s,background .15s,box-shadow .15s}
 .ctrl:focus-within{background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 .ctrl input,.ctrl select{width:100%;min-width:0;height:50px;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:0 14px;outline:none;appearance:none;-webkit-appearance:none;border-radius:12px}
@@ -142,7 +144,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   // así que forzamos que se muestre.
   raiz.style.setProperty("display", "block", "important");
   var sombraBoton = raiz.attachShadow({ mode: "open" });
-  sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en oficina TEALCA</span></button></div>';
+  sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en TEALCA · Domicilio en Caracas</span></button></div>';
   var boton = sombraBoton.querySelector(".abrir");
 
   fetch(SERVIDOR + "/api/producto/" + encodeURIComponent(VARIANTE))
@@ -212,7 +214,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     sombra.innerHTML = "<style>" + CSS + "</style>" +
       '<div class="w"><div class="fondo"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="t">' +
       '<div class="head">' + (IMAGEN ? '<div class="thumb" style="background-image:url(\'' + esc(IMAGEN) + '\')"></div>' : '') +
-      '<div class="head-txt"><h2 id="t">' + esc(titulo) + '</h2><p>Pagas al retirar en tu oficina TEALCA</p>' +
+      '<div class="head-txt"><h2 id="t">' + esc(titulo) + '</h2><p id="h-sub">Pagas al retirar en tu oficina TEALCA</p>' +
       (d.modo_prueba ? '<span class="aviso">Modo prueba · no crea pedidos reales</span>' : '') + '</div>' +
       '<button class="cerrar" type="button" aria-label="Cerrar">×</button></div>' +
       '<form novalidate>' +
@@ -226,10 +228,16 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<div class="ctrl" id="ctrl-ciudad-otra" hidden><input id="ciudad-otra" autocomplete="address-level2" placeholder="Escribe tu ciudad" maxlength="60" aria-label="Escribe tu ciudad"></div>' +
       '<div class="ayuda" hidden></div></div>' +
       '<div class="campo full" data-campo="oficina"><label for="oficina">Oficina TEALCA para retirar</label><div class="ctrl" id="ctrl-oficina"></div><div class="ayuda" hidden></div></div>' +
+      '<div class="campo full" data-campo="direccion" hidden><label for="direccion">Dirección de entrega</label><div class="ctrl">' +
+      '<textarea id="direccion" autocomplete="street-address" maxlength="200" placeholder="Calle o avenida, edificio o casa, piso/apto y un punto de referencia"></textarea></div>' +
+      '<div class="ayuda" data-normal="Entrega a domicilio en Caracas: escribe la dirección completa">Entrega a domicilio en Caracas: escribe la dirección completa</div></div>' +
+      '<div class="campo full" data-campo="cedula"><label for="cedula" id="l-cedula">Cédula de quien retira</label><div class="ctrl">' +
+      '<select id="cedula-tipo" class="tipo" aria-label="Tipo de cédula"><option>V</option><option>E</option></select>' +
+      '<input id="cedula" inputmode="numeric" placeholder="12345678" maxlength="10"></div><div class="ayuda" hidden></div></div>' +
       '</div></section>' +
       '<div class="resumen"><div class="fila"><span id="r-cant"></span><span id="r-sub"></span></div>' +
-      '<div class="fila"><span>Envío a oficina TEALCA</span><span class="incl">Incluido</span></div>' +
-      '<div class="fila total"><span>Total a pagar al retirar</span><span id="r-total"></span></div></div>' +
+      '<div class="fila"><span id="r-envio">Envío a oficina TEALCA</span><span class="incl">Incluido</span></div>' +
+      '<div class="fila total"><span id="r-total-txt">Total a pagar al retirar</span><span id="r-total"></span></div></div>' +
       '<div class="error" hidden></div>' +
       '<button class="cta" type="submit"><b>Confirmar pedido</b><span>No pagas nada ahora</span></button>' +
       '<div class="confianza"><div><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.5"/></svg>Pagas al recibir</div>' +
@@ -247,7 +255,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     sombra.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(); });
 
     sombra.querySelectorAll('input[name=oferta]').forEach(function (r) { r.addEventListener("change", resumen); });
-    $("#estado").addEventListener("change", function () { ciudades(); oficinas(); });
+    $("#estado").addEventListener("change", function () { ciudades(); oficinas(); entrega(); });
+    $("#cedula").addEventListener("input", function (e) { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 9); });
     $("#telefono").addEventListener("input", function (e) {
       var n = e.target.value.replace(/\D/g, "").replace(/^58(?=\d{10})/, "").replace(/^0/, "").slice(0, 10);
       e.target.value = n.replace(/^(\d{3})(\d{0,3})(\d{0,4}).*/, function (m, a, b, c) { return [a, b, c].filter(Boolean).join(" "); });
@@ -256,6 +265,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     $("form").addEventListener("submit", enviar);
     ciudades();
     oficinas();
+    entrega();
     resumen();
   }
 
@@ -279,6 +289,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         var otra = e.target.value === OTRA;
         sombra.querySelector("#ctrl-ciudad-otra").hidden = !otra;
         if (otra) sombra.querySelector("#ciudad-otra").focus();
+        entrega();
       });
     }
     sombra.querySelector("#ctrl-ciudad-otra").hidden = true;
@@ -287,6 +298,20 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   function ciudadElegida() {
     var v = sombra.querySelector("#ciudad").value;
     return v === OTRA ? sombra.querySelector("#ciudad-otra").value : v;
+  }
+  // Entrega a domicilio (ej. Caracas): se cambia la oficina por la dirección y se ajustan los textos.
+  function esDomicilio() {
+    var estado = sombra.querySelector("#estado").value, ciudad = sombra.querySelector("#ciudad").value;
+    return ((datos.domicilio || {})[estado] || []).indexOf(ciudad) >= 0;
+  }
+  function entrega() {
+    var dom = esDomicilio(), $ = function (q) { return sombra.querySelector(q); };
+    $('[data-campo="oficina"]').hidden = dom;
+    $('[data-campo="direccion"]').hidden = !dom;
+    $("#l-cedula").textContent = dom ? "Cédula de quien recibe" : "Cédula de quien retira";
+    $("#h-sub").textContent = dom ? "Entrega a domicilio · Pagas al recibir" : "Pagas al retirar en tu oficina TEALCA";
+    $("#r-envio").textContent = dom ? "Entrega a domicilio" : "Envío a oficina TEALCA";
+    $("#r-total-txt").textContent = dom ? "Total a pagar al recibir" : "Total a pagar al retirar";
   }
 
   function oficinas() {
@@ -328,15 +353,20 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var $ = function (s) { return sombra.querySelector(s); };
     var valores = {
       nombre: $("#nombre").value, apellido: $("#apellido").value, telefono: $("#telefono").value,
-      estado: $("#estado").value, ciudad: ciudadElegida(), oficina: $("#oficina").value
+      estado: $("#estado").value, ciudad: ciudadElegida(), oficina: $("#oficina").value,
+      direccion: $("#direccion").value, cedula: $("#cedula-tipo").value + "-" + $("#cedula").value
     };
+    var dom = esDomicilio();
+    if (dom) valores.oficina = ""; else valores.direccion = "";
     var errores = {};
     if (!valores.nombre.trim()) errores.nombre = "Escribe tu nombre";
     if (!valores.apellido.trim()) errores.apellido = "Escribe tu apellido";
     if (!/^4(12|14|16|22|24|26)\d{7}$/.test(valores.telefono.replace(/\D/g, ""))) errores.telefono = "Revisa el número: debe ser un celular venezolano, ej. 412 123 4567";
     if (!valores.estado) errores.estado = "Selecciona tu estado";
     if (!valores.ciudad.trim()) errores.ciudad = $("#ciudad").value === OTRA ? "Escribe tu ciudad" : "Selecciona tu ciudad";
-    if (!valores.oficina.trim()) errores.oficina = "Elige la oficina donde vas a retirar";
+    if (!dom && !valores.oficina.trim()) errores.oficina = "Elige la oficina donde vas a retirar";
+    if (dom && valores.direccion.trim().length < 10) errores.direccion = "Escribe la dirección completa: calle, edificio o casa y un punto de referencia";
+    if (!/^\d{5,9}$/.test($("#cedula").value.replace(/^0+/, ""))) errores.cedula = "Revisa la cédula: solo números, ej. 12345678";
     if (mostrarErrores(errores)) return;
 
     var cta = $(".cta"), caja = $(".error");
@@ -354,8 +384,9 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.error) || "");
         var o = oferta();
         $("#l-t").textContent = "¡Listo, " + valores.nombre.trim().split(" ")[0] + "! Recibimos tu pedido";
-        $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], ["Total al retirar", dinero(o.precio, datos.moneda)],
-          ["WhatsApp", "+58 " + valores.telefono], ["Retiro", "TEALCA " + valores.oficina]]
+        $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], [dom ? "Total al recibir" : "Total al retirar", dinero(o.precio, datos.moneda)],
+          ["WhatsApp", "+58 " + valores.telefono], dom ? ["Entrega", valores.direccion.trim()] : ["Retiro", "TEALCA " + valores.oficina],
+          ["Cédula", valores.cedula]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
 $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
         $("form").hidden = true;
@@ -372,7 +403,7 @@ $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
 
   function mostrarErrores(errores) {
     var primero = null;
-    ["nombre", "apellido", "telefono", "estado", "ciudad", "oficina"].forEach(function (id) {
+    ["nombre", "apellido", "telefono", "estado", "ciudad", "oficina", "direccion", "cedula"].forEach(function (id) {
       marcar(id, errores[id] || null);
       if (errores[id] && !primero) primero = sombra.querySelector("#" + id);
     });

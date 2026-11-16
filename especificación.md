@@ -17,6 +17,13 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - En Shopify el pedido va con el precio de 1 unidad por cada unidad y un descuento `OFERTA N UNIDADES` por la diferencia (ej. 3 × 37.500 − 47.000 = 65.500).
 - **Verificar en la primera prueba real** que el total del pedido en Shopify quede exacto.
 
+## Cédula y entrega a domicilio
+- Campo obligatorio **Cédula de quien retira** (o "de quien recibe" en domicilio), debajo de la oficina: letra V/E + 5 a 9 números. Se guarda como `V-12345678`.
+- En Shopify: línea 2 de la dirección `C.I. V-12345678` y dato adicional "Cédula".
+- **Entrega a domicilio** (`ENTREGA_DOMICILIO` en `reglas.py`, hoy: Distrito Capital → Caracas): al elegir esa ciudad desaparece la oficina y aparece "Dirección de entrega" (mínimo 10 letras). Textos: "Entrega a domicilio · Pagas al recibir".
+- Pedido a domicilio en Shopify: dirección = la del cliente, ciudad = Caracas, estado A, envío "Entrega a domicilio" (0), etiqueta `DOMICILIO`, datos adicionales "Oficina de TEALCA" = ENTREGA A DOMICILIO, "Dirección", "Tipo de entrega".
+- En Google Sheets, columna Oficina = `DOMICILIO: <dirección>`. La cédula aún no va a la hoja (pendiente: Mike dice en qué columna).
+
 ## Ciudades
 - La ciudad se elige de una lista que depende del estado (`ciudades_ve.json`, 497 ciudades). Fuente: venezuela-json de Zokeber (CC BY 4.0), corregida: Caracas en Distrito Capital, Vargas pasa a La Guaira con sus ciudades, y se agregaron San Diego, El Limón, Villa del Rosario, Ciudad Guayana, Santa Teresa del Tuy, Petare, Baruta, Chacao, El Hatillo, Juan Griego, Ureña y Pedernales.
 - Última opción: "Otra ciudad (escribirla)", que abre una casilla para escribirla. El servidor acepta cualquier ciudad escrita.

@@ -33,6 +33,26 @@ CODIGO_ESTADO = {
 # Forma de pago que muestra Shopify en el pedido (igual que Releasit).
 PASARELA_COD = "Cash on Delivery (COD)"
 
+# Ciudades con entrega a domicilio (en vez de retiro en oficina TEALCA): estado -> ciudades.
+ENTREGA_DOMICILIO = {"Distrito Capital": ["Caracas"]}
+
+
+def es_domicilio(estado: str, ciudad: str) -> bool:
+    return ciudad in ENTREGA_DOMICILIO.get(estado, [])
+
+
+def normalizar_cedula(texto: str) -> str | None:
+    """Convierte 'v12.345.678', 'E-1234567', '12345678' (se asume V) en 'V-12345678'. None si no parece cédula."""
+    t = re.sub(r"[\s.\-]", "", (texto or "").upper())
+    letra = "V"
+    if t[:1] in ("V", "E"):
+        letra, t = t[0], t[1:]
+    t = t.lstrip("0")
+    if re.fullmatch(r"\d{5,9}", t):
+        return f"{letra}-{t}"
+    return None
+
+
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 
@@ -97,12 +117,25 @@ def validar_datos(datos: dict) -> tuple[dict, dict]:
         "estado": limpiar(datos.get("estado"), 40),
         "ciudad": limpiar(datos.get("ciudad"), 60),
         "oficina": limpiar(datos.get("oficina"), 120),
+        "cedula": normalizar_cedula(datos.get("cedula", "")),
+        "direccion": limpiar(datos.get("direccion"), 200),
     }
+    limpio["domicilio"] = es_domicilio(limpio["estado"], limpio["ciudad"])
+    if limpio["domicilio"]:
+        limpio["oficina"] = ""
+    else:
+        limpio["direccion"] = ""
     errores = {}
     for campo, mensaje in [("nombre", "Escribe tu nombre"), ("apellido", "Escribe tu apellido"),
-                           ("ciudad", "Escribe tu ciudad"), ("oficina", "Elige la oficina donde vas a retirar")]:
+                           ("ciudad", "Escribe tu ciudad")]:
         if not limpio[campo]:
             errores[campo] = mensaje
+    if limpio["domicilio"] and len(limpio["direccion"]) < 10:
+        errores["direccion"] = "Escribe la dirección completa: calle, edificio o casa y un punto de referencia"
+    if not limpio["domicilio"] and not limpio["oficina"]:
+        errores["oficina"] = "Elige la oficina donde vas a retirar"
+    if not limpio["cedula"]:
+        errores["cedula"] = "Revisa la cédula: solo números, ej. 12345678"
     if not limpio["telefono"]:
         errores["telefono"] = "Revisa el número: debe ser un celular venezolano, ej. 412 123 4567"
     if limpio["estado"] not in ESTADOS:
@@ -120,14 +153,16 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
     """Arma el pedido tal como se envía a Shopify (orderCreate).
     Copia el formato de los pedidos de Releasit, para que Pancake, Sheets y Dropanas los lean igual:
     dirección = la ciudad que eligió el cliente, ciudad = la oficina TEALCA, estado con su código de Shopify,
+    línea 2 = "C.I. V-12345678" (cédula de quien retira); en entrega a domicilio: dirección = la del cliente, ciudad = Caracas,
     pago pendiente por "Cash on Delivery (COD)" y envío "Gratis".
     No se enlaza un cliente: Shopify exige correo para eso y el formulario no lo pide (el pedido igual lleva nombre y teléfono)."""
     dinero = lambda valor: {"shopMoney": {"amount": f"{valor:.2f}", "currencyCode": moneda}}
     direccion = {
         "firstName": datos["nombre"],
         "lastName": datos["apellido"],
-        "address1": datos["ciudad"],
-        "city": datos["oficina"],
+        "address1": datos["direccion"] if datos["domicilio"] else datos["ciudad"],
+        "address2": f"C.I. {datos['cedula']}",
+        "city": datos["ciudad"] if datos["domicilio"] else datos["oficina"],
         "provinceCode": CODIGO_ESTADO[datos["estado"]],
         "countryCode": "VE",
         "phone": datos["telefono"],
@@ -141,9 +176,13 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         {"key": "Teléfono", "value": datos["telefono"].removeprefix("+58")},
         {"key": "Estado", "value": datos["estado"].upper()},
         {"key": "Ciudad", "value": datos["ciudad"]},
-        {"key": "Oficina de TEALCA", "value": datos["oficina"]},
+        {"key": "Oficina de TEALCA", "value": "ENTREGA A DOMICILIO" if datos["domicilio"] else datos["oficina"]},
+        {"key": "Cédula", "value": datos["cedula"]},
+        {"key": "Tipo de entrega", "value": "Entrega a domicilio" if datos["domicilio"] else "Retiro en oficina TEALCA"},
         {"key": "IP address", "value": ip or "desconocida"},
     ]
+    if datos["domicilio"]:
+        atributos.insert(len(atributos) - 1, {"key": "Dirección", "value": datos["direccion"]})
     pedido = {
         "currency": moneda,
         "financialStatus": "PENDING",
@@ -155,9 +194,9 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         }],
         "shippingAddress": direccion,
         "billingAddress": direccion,
-        "shippingLines": [{"title": "Gratis", "priceSet": dinero(0)}],
+        "shippingLines": [{"title": "Entrega a domicilio" if datos["domicilio"] else "Gratis", "priceSet": dinero(0)}],
         "transactions": [{"kind": "SALE", "status": "PENDING", "gateway": PASARELA_COD, "amountSet": dinero(oferta["precio"])}],
-        "tags": ETIQUETAS_PEDIDO,
+        "tags": ETIQUETAS_PEDIDO + (["DOMICILIO"] if datos["domicilio"] else []),
         "customAttributes": atributos,
     }
     descuento = oferta["antes"] - oferta["precio"]

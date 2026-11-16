@@ -19,7 +19,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 import app as servidor  # noqa: E402
 
 BUENOS = {"nombre": "Juan", "apellido": "Hernández", "telefono": "0412-123.45.67",
-          "estado": "Carabobo", "ciudad": "Valencia", "oficina": "SAN DIEGO", "variante": "123", "oferta": 0}
+          "estado": "Carabobo", "ciudad": "Valencia", "oficina": "SAN DIEGO", "cedula": "v-12.345.678",
+          "variante": "123", "oferta": 0}
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +39,7 @@ def test_telefono(texto, esperado):
 
 def test_validacion_marca_campos_vacios():
     _, errores = reglas.validar_datos({})
-    assert set(errores) == {"nombre", "apellido", "telefono", "estado", "ciudad", "oficina"}
+    assert set(errores) == {"nombre", "apellido", "telefono", "estado", "ciudad", "oficina", "cedula"}
 
 
 def test_pedido_bien_armado():
@@ -218,3 +219,42 @@ def test_sheets_solo_en_modo_real(monkeypatch):
     c = TestClient(servidor.app)
     assert c.post("/api/pedido", json=BUENOS).status_code == 200
     assert llamadas == []  # modo prueba: no se escribe en la hoja
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("12345678", "V-12345678"), ("v-12.345.678", "V-12345678"), ("E 1234567", "E-1234567"), ("V012345678", "V-12345678"),
+    ("abc", None), ("1234", None), ("", None),
+])
+def test_cedula(texto, esperado):
+    assert reglas.normalizar_cedula(texto) == esperado
+
+
+def test_oficina_lleva_cedula():
+    datos, errores = reglas.validar_datos(BUENOS)
+    assert not errores and not datos["domicilio"]
+    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
+    assert p["shippingAddress"]["address2"] == "C.I. V-12345678" and p["shippingAddress"]["city"] == "SAN DIEGO"
+    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
+    assert atr["Cédula"] == "V-12345678" and atr["Tipo de entrega"] == "Retiro en oficina TEALCA" and "Dirección" not in atr
+    assert "DOMICILIO" not in p["tags"]
+
+
+def test_caracas_entrega_a_domicilio():
+    base = {**BUENOS, "estado": "Distrito Capital", "ciudad": "Caracas", "oficina": ""}
+    _, errores = reglas.validar_datos(base)
+    assert "direccion" in errores and "oficina" not in errores
+    datos, errores = reglas.validar_datos({**base, "direccion": "Av. Sucre, edif. Los Pinos, piso 3, apto 3B, Catia"})
+    assert not errores and datos["domicilio"] and datos["oficina"] == ""
+    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
+    d = p["shippingAddress"]
+    assert d["address1"].startswith("Av. Sucre") and d["city"] == "Caracas" and d["provinceCode"] == "A"
+    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
+    assert atr["Oficina de TEALCA"] == "ENTREGA A DOMICILIO" and atr["Dirección"].startswith("Av. Sucre")
+    assert atr["Tipo de entrega"] == "Entrega a domicilio" and "DOMICILIO" in p["tags"]
+    assert p["shippingLines"][0]["title"] == "Entrega a domicilio"
+    from datetime import datetime
+    fila = sheets.armar_fila(datos, "AO", reglas.ofertas_de("1", "x", Decimal("10"))[0], {}, datetime(2026, 11, 16))
+    assert fila["oficina"].startswith("DOMICILIO: Av. Sucre")
+    # Otra ciudad del Distrito Capital (escrita a mano) sigue siendo retiro en oficina
+    _, errores = reglas.validar_datos({**BUENOS, "estado": "Distrito Capital", "ciudad": "El Junquito", "oficina": "JUNQUITO"})
+    assert not errores

@@ -70,3 +70,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.10 — Google Sheets: cada pedido real se agrega a la pestaña del mes ("Tealca {mes} COD") con las columnas de Releasit.
 - v0.11 — `MODO_PRUEBA` ya no tiene valor en `render.yaml`: se maneja solo desde la página de Render (antes cada subida lo devolvía a 1).
 - v0.12 — Arreglo: Shopify rechazaba el pedido al enlazar el cliente sin correo; ya no se enlaza cliente.
+- v0.13 — Campo Cédula (V/E) obligatorio y entrega a domicilio en Caracas (dirección en vez de oficina).
