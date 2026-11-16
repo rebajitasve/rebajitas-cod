@@ -27,6 +27,11 @@ SHOPIFY_CLIENT_ID = os.environ.get("SHOPIFY_CLIENT_ID", "").strip()
 SHOPIFY_CLIENT_SECRET = os.environ.get("SHOPIFY_CLIENT_SECRET", "").strip()
 SHOPIFY_VERSION_API = os.environ.get("SHOPIFY_VERSION_API", "2025-10")
 
+# Google Sheets: dirección que da Apps Script, clave compartida y nombre de la pestaña del mes.
+SHEETS_URL = os.environ.get("SHEETS_URL", "").strip()
+SHEETS_CLAVE = os.environ.get("SHEETS_CLAVE", "").strip()
+SHEETS_HOJA = os.environ.get("SHEETS_HOJA", "Tealca {mes} COD").strip()
+
 TIENDA_ORIGENES = [o.strip().rstrip("/") for o in os.environ.get("TIENDA_ORIGENES", "").split(",") if o.strip()]
 
 PUERTO = int(os.environ.get("PORT", "8001"))

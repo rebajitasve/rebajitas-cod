@@ -13,6 +13,7 @@ os.environ["MODO_PRUEBA"] = "1"
 
 import config  # noqa: E402
 import reglas  # noqa: E402
+import sheets  # noqa: E402
 import shopify  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 import app as servidor  # noqa: E402
@@ -178,3 +179,42 @@ def test_ciudades_por_estado():
 def test_codigos_de_estado_completos():
     assert set(reglas.CODIGO_ESTADO) == set(reglas.ESTADOS)
     assert reglas.CODIGO_ESTADO["Anzoátegui"] == "B"  # igual que el pedido de Releasit (LECHERÍA - B)
+
+
+def test_sheets_fila_igual_a_releasit(monkeypatch):
+    from datetime import datetime
+    monkeypatch.setattr(config, "SHEETS_URL", "https://script.google.com/macros/s/x/exec")
+    monkeypatch.setattr(config, "SHEETS_CLAVE", "k")
+    monkeypatch.setattr(config, "SHEETS_HOJA", "Tealca {mes} COD")
+    assert sheets.nombre_hoja(datetime(2026, 11, 16)) == "Tealca Noviembre COD"
+    assert sheets.nombre_hoja(datetime(2026, 12, 1)) == "Tealca Diciembre COD"
+    datos, _ = reglas.validar_datos(BUENOS)
+    oferta = reglas.ofertas_de("1", "AO", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
+    fila = sheets.armar_fila(datos, "AO BLACK MACA - Potencia Brutal", oferta, {"utm_source": "Facebook_Mobile_Feed"},
+                             datetime(2026, 11, 1, 0, 16, 0))
+    assert fila["fecha"] == "2026-11-01 0:16:00" and fila["nombre"] == "Juan Hernández"
+    assert fila["telefono"] == "+584121234567" and fila["estado"] == "CARABOBO" and fila["oficina"] == "SAN DIEGO"
+    assert fila["cantidad"] == 2 and fila["valor"] == 57500.0 and fila["utm_source"] == "Facebook_Mobile_Feed"
+
+    enviados = []
+    def responder(request):
+        enviados.append(json.loads(request.content))
+        return httpx.Response(200, json={"ok": True, "hoja": "Tealca Noviembre COD"})
+    assert sheets.enviar("#1001", datos, "AO", oferta, {}, httpx.Client(transport=httpx.MockTransport(responder)))
+    assert enviados[0]["clave"] == "k" and enviados[0]["fila"]["oficina"] == "SAN DIEGO"
+
+    fallos = []
+    def falla(request):
+        fallos.append(1)
+        return httpx.Response(200, json={"ok": False, "error": "clave incorrecta"})
+    assert not sheets.enviar("#1002", datos, "AO", oferta, {}, httpx.Client(transport=httpx.MockTransport(falla)))
+    assert len(fallos) == 3
+
+
+def test_sheets_solo_en_modo_real(monkeypatch):
+    llamadas = []
+    monkeypatch.setattr(sheets, "activo", lambda: True)
+    monkeypatch.setattr(sheets, "enviar_en_segundo_plano", lambda *a: llamadas.append(a))
+    c = TestClient(servidor.app)
+    assert c.post("/api/pedido", json=BUENOS).status_code == 200
+    assert llamadas == []  # modo prueba: no se escribe en la hoja

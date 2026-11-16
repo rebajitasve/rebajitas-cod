@@ -7,6 +7,8 @@ App propia para la tienda Shopify: botón "Pagar al recibir" + formulario + pedi
 - `reglas.py` — reglas de negocio: estados, oficinas TEALCA, ofertas, validaciones, cómo se arma el pedido.
 - `ciudades_ve.json` — ciudades de Venezuela por estado (para la lista de Ciudad). Para agregar una ciudad, editar este archivo.
 - `oficinas_tealca.json` — oficinas TEALCA por estado (para cambiarlas, editar este archivo).
+- `sheets.py` — envía cada pedido nuevo a Google Sheets.
+- `integraciones/google_sheets.gs` — código que se pega en la hoja de Google (Apps Script).
 - `shopify.py` — la conexión con Shopify (leer producto, crear pedido).
 - `estaticos/formulario.js` — el botón y el formulario que ve el cliente.
 - `estaticos/prueba.html` — página que imita la del producto, para probar.
@@ -40,6 +42,15 @@ Ver `.env.example`. Nunca se sube a GitHub.
 - `SHOPIFY_TOKEN` o bien `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` — llaves de la app en Shopify (permiso: crear pedidos y leer productos).
 - `TIENDA_ORIGENES` — direcciones de la tienda autorizadas a enviar el formulario.
 
+## Google Sheets
+1. En la hoja "Rebajitas": **Extensiones → Apps Script**. Borrar lo que haya y pegar `integraciones/google_sheets.gs`, cambiando `PEGA_AQUI_LA_CLAVE` por una clave.
+2. **Implementar → Nueva implementación → Tipo: Aplicación web**. Ejecutar como: **Yo**. Quién tiene acceso: **Cualquier persona**. Autorizar con la cuenta de Google.
+3. Copiar la **URL de la aplicación web** (termina en `/exec`).
+4. En Render → rebajitas-cod → Environment: `SHEETS_URL` = esa URL, `SHEETS_CLAVE` = la misma clave.
+- La pestaña se elige sola por mes: "Tealca {mes} COD" (ej. "Tealca Diciembre COD"). **Hay que crear la pestaña del mes antes del día 1**; si no existe, los pedidos van a una pestaña "Pedidos sin pestaña".
+- Solo escribe columnas A–H y T–W. En modo prueba no escribe nada.
+- Si se cambia el código de Apps Script: **Implementar → Gestionar implementaciones → editar → Nueva versión** (así la URL no cambia).
+
 ## Render
 `render.yaml` crea el servicio `rebajitas-cod` (plan Starter, US$ 7/mes, siempre encendido para no hacer esperar al cliente).
 Solo pide dos llaves: `SHOPIFY_CLIENT_ID` y `SHOPIFY_CLIENT_SECRET` (de dev.shopify.com → Rebajitas COD → Configuración).
@@ -56,3 +67,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.7 — Arreglo: el tema de la tienda (Dawn) escondía el botón por verse "vacío"; ahora se fuerza a mostrarse. Franja de diagnóstico paso a paso con `?rcod=1` (arriba, con ×) y aviso si el bloque está pegado dos veces.
 - v0.8 — Ciudad como lista desplegable que depende del estado (497 ciudades), con opción "Otra ciudad (escribirla)".
 - v0.9 — El pedido en Shopify queda con el formato de Releasit: dirección = ciudad, ciudad = oficina TEALCA, código de estado, pago COD pendiente, envío "Gratis", cliente enlazado, sin nota.
+- v0.10 — Google Sheets: cada pedido real se agrega a la pestaña del mes ("Tealca {mes} COD") con las columnas de Releasit.

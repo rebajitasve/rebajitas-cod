@@ -74,10 +74,11 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 | 2 | Ofertas por cantidad (bundles) | Hecho en código; falta probar con la tienda real |
 | 3 | Bloqueo de teléfonos e IP | Pendiente (necesita base de datos) |
 | 4 | Píxel de Meta (navegador + servidor) | Pendiente |
-| 5 | Google Sheets directo | Solo si hace falta (hoy lo llena Releasit) |
+| 5 | Google Sheets directo | Hecho (falta conectar la hoja) |
 
-## Google Sheets (pendiente)
+## Google Sheets
 - Hoja "Rebajitas", pestaña del mes con nombre exacto **"Tealca Noviembre COD"** (una pestaña nueva cada mes).
+- Funciona con un código de Apps Script pegado en la hoja (`integraciones/google_sheets.gs`) que recibe cada pedido real y agrega la fila. La pestaña se elige por mes (`SHEETS_HOJA` = "Tealca {mes} COD"); si no existe, va a "Pedidos sin pestaña". Se envía en segundo plano (el cliente no espera) con 3 reintentos; si falla, queda en el registro de Render para anotarlo a mano.
 - Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
 
 ## Datos pendientes de Mike

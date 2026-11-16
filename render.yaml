@@ -24,3 +24,9 @@ services:
         sync: false
       - key: TIENDA_ORIGENES   # direcciones de la tienda autorizadas a enviar el formulario
         value: https://rebajitasve.com,https://www.rebajitasve.com,https://e1bvrm-ze.myshopify.com
+      - key: SHEETS_URL        # dirección que da Apps Script al implementar (termina en /exec)
+        sync: false
+      - key: SHEETS_CLAVE      # la misma clave escrita en el código de Apps Script
+        sync: false
+      - key: SHEETS_HOJA       # nombre de la pestaña; {mes} se cambia solo por el mes actual
+        value: "Tealca {mes} COD"

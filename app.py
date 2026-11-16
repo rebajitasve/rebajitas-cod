@@ -1,5 +1,6 @@
 """Servidor del formulario: entrega el formulario a la tienda y crea los pedidos en Shopify."""
 import logging
+from datetime import datetime
 from html import escape
 import threading
 import time
@@ -11,6 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 import config
 import reglas
+import sheets
 import shopify
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -56,6 +58,8 @@ def inicio():
             log.warning("Prueba de conexión fallida: %s", e)
             conexion, ok = "Las llaves no funcionan. Revisa el ID y el secreto del cliente en Render", False
     modo = "Modo prueba: el formulario NO crea pedidos reales" if config.MODO_PRUEBA else "Modo real: el formulario crea pedidos"
+    hoja = (f"Google Sheets: conectado (pestaña de este mes: «{sheets.nombre_hoja(datetime.now(sheets.HORA_VENEZUELA))}»)"
+            if sheets.activo() else "Google Sheets: sin configurar")
     color = "#0d7a50" if ok else "#c2372f"
     return f"""<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rebajitas COD</title>
@@ -64,6 +68,7 @@ def inicio():
 <h1 style="margin:0 0 16px;font-size:22px">Rebajitas COD</h1>
 <p style="margin:8px 0;color:{color};font-weight:700">{"✔" if ok else "✖"} {escape(conexion)}</p>
 <p style="margin:8px 0;font-weight:600">{modo}</p>
+<p style="margin:8px 0">{escape(hoja)}</p>
 <p style="margin:16px 0 0;color:#5d6865;font-size:14px">Esta app maneja el botón "Pagar al recibir" de la tienda. No hay nada que configurar aquí.</p>
 </div></body></html>"""
 
@@ -156,6 +161,8 @@ async def pedido(request: Request):
         for k in [k for k, (h, _) in _recientes.items() if ahora - h > MINUTOS_REPETIDO * 60]:
             del _recientes[k]
     log.info("Pedido %s creado: %s x%s", resultado["numero"], v["titulo"], oferta["cantidad"])
+    if sheets.activo() and not config.MODO_PRUEBA:
+        sheets.enviar_en_segundo_plano(resultado["numero"], datos, v["titulo"], oferta, utm)
     return {"ok": True, "numero": resultado["numero"], "total": _numero(oferta["precio"]), "moneda": v["moneda"]}
 
 
