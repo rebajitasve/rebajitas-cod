@@ -19,7 +19,7 @@ def activo() -> bool:
 
 
 def nombre_hoja(ahora: datetime) -> str:
-    """Pestaña del mes, ej. "Tealca Noviembre COD" (el patrón se cambia con SHEETS_HOJA)."""
+    """Pestaña del mes, ej. "Tealca COD Noviembre" (el patrón se cambia con SHEETS_HOJA)."""
     return config.SHEETS_HOJA.replace("{mes}", MESES[ahora.month - 1])
 
 

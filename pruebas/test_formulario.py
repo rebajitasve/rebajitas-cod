@@ -186,9 +186,9 @@ def test_sheets_fila_igual_a_releasit(monkeypatch):
     from datetime import datetime
     monkeypatch.setattr(config, "SHEETS_URL", "https://script.google.com/macros/s/x/exec")
     monkeypatch.setattr(config, "SHEETS_CLAVE", "k")
-    monkeypatch.setattr(config, "SHEETS_HOJA", "Tealca {mes} COD")
-    assert sheets.nombre_hoja(datetime(2026, 11, 16)) == "Tealca Noviembre COD"
-    assert sheets.nombre_hoja(datetime(2026, 12, 1)) == "Tealca Diciembre COD"
+    monkeypatch.setattr(config, "SHEETS_HOJA", "Tealca COD {mes}")
+    assert sheets.nombre_hoja(datetime(2026, 11, 16)) == "Tealca COD Noviembre"
+    assert sheets.nombre_hoja(datetime(2026, 12, 1)) == "Tealca COD Diciembre"
     datos, _ = reglas.validar_datos(BUENOS)
     oferta = reglas.ofertas_de("1", "AO", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
     fila = sheets.armar_fila(datos, "AO BLACK MACA - Potencia Brutal", oferta, {"utm_source": "Facebook_Mobile_Feed"},
@@ -200,7 +200,7 @@ def test_sheets_fila_igual_a_releasit(monkeypatch):
     enviados = []
     def responder(request):
         enviados.append(json.loads(request.content))
-        return httpx.Response(200, json={"ok": True, "hoja": "Tealca Noviembre COD"})
+        return httpx.Response(200, json={"ok": True, "hoja": "Tealca COD Noviembre"})
     assert sheets.enviar("#1001", datos, "AO", oferta, {}, httpx.Client(transport=httpx.MockTransport(responder)))
     assert enviados[0]["clave"] == "k" and enviados[0]["fila"]["oficina"] == "SAN DIEGO"
 

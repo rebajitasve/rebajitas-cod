@@ -47,7 +47,7 @@ Ver `.env.example`. Nunca se sube a GitHub.
 2. **Implementar → Nueva implementación → Tipo: Aplicación web**. Ejecutar como: **Yo**. Quién tiene acceso: **Cualquier persona**. Autorizar con la cuenta de Google.
 3. Copiar la **URL de la aplicación web** (termina en `/exec`).
 4. En Render → rebajitas-cod → Environment: `SHEETS_URL` = esa URL, `SHEETS_CLAVE` = la misma clave.
-- La pestaña se elige sola por mes: "Tealca {mes} COD" (ej. "Tealca Diciembre COD"). **Hay que crear la pestaña del mes antes del día 1**; si no existe, los pedidos van a una pestaña "Pedidos sin pestaña".
+- La pestaña se elige sola por mes: "Tealca COD {mes}" (ej. "Tealca COD Diciembre"). **Hay que crear la pestaña del mes antes del día 1**; si no existe, los pedidos van a una pestaña "Pedidos sin pestaña".
 - Solo escribe columnas A–H, P (cédula) y T–W. En modo prueba no escribe nada.
 - La pantalla https://rebajitas-cod.onrender.com revisa la conexión con la hoja (sin escribir) y dice qué falla.
 - Si se cambia el código de Apps Script: **Implementar → Gestionar implementaciones → editar → Nueva versión** (así la URL no cambia).
@@ -68,9 +68,10 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.7 — Arreglo: el tema de la tienda (Dawn) escondía el botón por verse "vacío"; ahora se fuerza a mostrarse. Franja de diagnóstico paso a paso con `?rcod=1` (arriba, con ×) y aviso si el bloque está pegado dos veces.
 - v0.8 — Ciudad como lista desplegable que depende del estado (497 ciudades), con opción "Otra ciudad (escribirla)".
 - v0.9 — El pedido en Shopify queda con el formato de Releasit: dirección = ciudad, ciudad = oficina TEALCA, código de estado, pago COD pendiente, envío "Gratis", cliente enlazado, sin nota.
-- v0.10 — Google Sheets: cada pedido real se agrega a la pestaña del mes ("Tealca {mes} COD") con las columnas de Releasit.
+- v0.10 — Google Sheets: cada pedido real se agrega a la pestaña del mes ("Tealca COD {mes}") con las columnas de Releasit.
 - v0.11 — `MODO_PRUEBA` ya no tiene valor en `render.yaml`: se maneja solo desde la página de Render (antes cada subida lo devolvía a 1).
 - v0.12 — Arreglo: Shopify rechazaba el pedido al enlazar el cliente sin correo; ya no se enlaza cliente.
 - v0.13 — Campo Cédula (V/E) obligatorio y entrega a domicilio en Caracas (dirección en vez de oficina).
 - v0.14 — Todo Miranda con entrega a domicilio; cédula en la columna P de la hoja; verificación de Google Sheets en la pantalla de la app.
 - v0.15 — Primer pedido real OK (#3805). Se enlaza/crea el cliente por teléfono y el pedido queda como "requiere envío".
+- v0.16 — La pestaña del mes se llama "Tealca COD {mes}" (ej. "Tealca COD Noviembre"), nombre real confirmado por Mike. Verificación de la hoja con mensajes más claros.

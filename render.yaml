@@ -29,4 +29,4 @@ services:
       - key: SHEETS_CLAVE      # la misma clave escrita en el código de Apps Script
         sync: false
       - key: SHEETS_HOJA       # nombre de la pestaña; {mes} se cambia solo por el mes actual
-        value: "Tealca {mes} COD"
+        value: "Tealca COD {mes}"
