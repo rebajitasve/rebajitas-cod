@@ -11,7 +11,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 5. Pantalla final: resumen del pedido y botón verde **"Ir a WhatsApp a confirmar mi pedido"**, que abre el chat con +58 412 225 4027 (sin mensaje escrito: Pancake envía la confirmación automática y el cliente solo la responde). El número se cambia en `reglas.py` (`WHATSAPP_CONFIRMACION`).
 
 ## Ofertas (bundles)
-- Se configuran en `reglas.py` (`OFERTAS`) por nombre del producto en Shopify.
+- Se configuran en `reglas.py` (`OFERTAS`) por dirección del producto (`ao-black-maca-potencia-brutal`), nombre o ID de variante.
 - AO Black Maca: 1 unidad Bs.S. 37.500 · 2 unidades Bs.S. 57.500 ("Más vendido", viene marcada) · 3 unidades Bs.S. 65.500 ("Mejor precio").
 - Precio tachado = precio de 1 unidad × cantidad.
 - En Shopify el pedido va con el precio de 1 unidad por cada unidad y un descuento `OFERTA N UNIDADES` por la diferencia (ej. 3 × 37.500 − 47.000 = 65.500).
@@ -40,6 +40,9 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 ## Tienda
 - Shopify: `e1bvrm-ze.myshopify.com` · Pública: `rebajitasve.com`
 - App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
+
+## Diagnóstico
+- Si el botón no aparece, abrir la página del producto con `?rcod=1` al final (o en vista previa del tema): sale un recuadro rojo con el motivo. Los clientes no lo ven.
 
 ## Protecciones
 - Teléfono: solo celulares venezolanos (412, 414, 416, 422, 424, 426), con o sin 0 o +58.

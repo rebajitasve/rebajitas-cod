@@ -51,3 +51,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.3 — Ofertas de AO Black Maca (1/2/3 unidades), datos del pedido con los mismos nombres que Releasit, UTM de anuncios, botón de WhatsApp sin mensaje escrito.
 - v0.4 — Modo prueba lee el producto real sin crear pedidos; pantalla de estado de la conexión; direcciones de la tienda ya configuradas en `render.yaml`.
 - v0.5 — Se permite la vista previa de temas de Shopify (*.shopifypreview.com) y, solo en vista previa, el bloque explica por qué no aparece el botón.
+- v0.6 — Ofertas atadas a la dirección del producto (`ao-black-maca-potencia-brutal`). Agregar `?rcod=1` a la dirección del producto muestra (solo a quien lo use) por qué no aparece el botón.

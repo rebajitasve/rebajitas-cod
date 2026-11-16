@@ -128,11 +128,11 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         : err && /^\d+$/.test(err.message) ? "el servidor respondió con error " + err.message
         : "no se pudo conectar con el servidor (" + SERVIDOR + ") desde esta dirección: " + location.hostname;
       if (window.console) console.warn("Rebajitas COD: " + motivo);
-      var preview = /shopifypreview\.com$/.test(location.hostname) || /[?&](preview_theme_id|oseid)=/.test(location.search) ||
+      var preview = /shopifypreview\.com$/.test(location.hostname) || /[?&](preview_theme_id|oseid|rcod)=/.test(location.search) ||
         (window.Shopify && window.Shopify.designMode);
       if (preview) {
         sombraBoton.querySelector(".w").insertAdjacentHTML("beforeend",
-          '<div class="error">Rebajitas COD (solo visible en vista previa): ' + esc(motivo) + "</div>");
+          '<div class="error">Rebajitas COD (aviso solo para ti, los clientes no lo ven): ' + esc(motivo) + "</div>");
       }
     });
 

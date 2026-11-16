@@ -58,7 +58,7 @@ def _consulta(consulta: str, variables: dict, cliente: httpx.Client | None = Non
             cliente.close()
 
 
-PRODUCTO_PRUEBA = {"titulo": "AO Black Maca", "variante": "", "precio": Decimal("32450.00"),
+PRODUCTO_PRUEBA = {"titulo": "AO Black Maca", "direccion": "ao-black-maca-potencia-brutal", "variante": "", "precio": Decimal("32450.00"),
                    "disponible": True, "moneda": "VES"}
 
 
@@ -79,7 +79,7 @@ def leer_variante(variante_id: str, cliente=None) -> dict:
         return dict(PRODUCTO_PRUEBA)
     datos = _consulta("""
         query($id: ID!) {
-          productVariant(id: $id) { title price availableForSale product { title } }
+          productVariant(id: $id) { title price availableForSale product { title handle } }
           shop { currencyCode }
         }""", {"id": f"gid://shopify/ProductVariant/{variante_id}"}, cliente)
     v = datos.get("productVariant")
@@ -87,6 +87,7 @@ def leer_variante(variante_id: str, cliente=None) -> dict:
         raise ErrorShopify("Ese producto no existe en la tienda")
     return {
         "titulo": v["product"]["title"],
+        "direccion": v["product"].get("handle", ""),
         "variante": "" if v["title"] == "Default Title" else v["title"],
         "precio": Decimal(str(v["price"])),
         "disponible": v["availableForSale"],

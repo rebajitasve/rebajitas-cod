@@ -99,7 +99,7 @@ def test_shopify_real_simulado(monkeypatch):
         if "productVariant" in cuerpo["query"]:
             return httpx.Response(200, json={"data": {
                 "productVariant": {"title": "Default Title", "price": "32450.00", "availableForSale": True,
-                                   "product": {"title": "AO Black Maca"}},
+                                   "product": {"title": "AO Black Maca Potencia Brutal", "handle": "ao-black-maca-potencia-brutal"}},
                 "shop": {"currencyCode": "VES"}}})
         return httpx.Response(200, json={"data": {"orderCreate": {
             "order": {"id": "gid://shopify/Order/1", "name": "#1001"}, "userErrors": []}}})
@@ -108,7 +108,7 @@ def test_shopify_real_simulado(monkeypatch):
     v = shopify.leer_variante("123", cliente)
     assert v["precio"] == Decimal("32450.00") and v["moneda"] == "VES" and v["variante"] == ""
     datos, _ = reglas.validar_datos(BUENOS)
-    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["titulo"], v["precio"])[2], "VES", ""), cliente)
+    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["titulo"], v["precio"], v["direccion"])[2], "VES", ""), cliente)
     assert r["numero"] == "#1001"
     assert enviados[1]["variables"]["options"]["sendReceipt"] is False
 
@@ -123,7 +123,8 @@ def test_oficinas_tealca():
 
 
 def test_ofertas_ao_black_maca():
-    o = reglas.ofertas_de("999", "AO Black Maca", Decimal("32450"))
+    assert reglas.ofertas_de("999", "AO Black Maca Potencia Brutal", Decimal("32450"), "ao-black-maca-potencia-brutal")[2]["precio"] == Decimal("65500")
+    o = reglas.ofertas_de("999", "Otro nombre", Decimal("32450"), "AO-Black-Maca-Potencia-Brutal")
     assert [(x["cantidad"], x["precio"], x["antes"]) for x in o] == [
         (1, Decimal("37500"), Decimal("37500.00")), (2, Decimal("57500"), Decimal("75000.00")), (3, Decimal("65500"), Decimal("112500.00"))]
     datos, _ = reglas.validar_datos(BUENOS)

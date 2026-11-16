@@ -20,11 +20,12 @@ with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 
-# Ofertas por cantidad. Clave: nombre del producto en Shopify (sin importar mayúsculas/acentos) o ID de la variante.
+# Ofertas por cantidad. Clave: dirección del producto (lo que va después de /products/ en la tienda),
+# o nombre del producto en Shopify (sin importar mayúsculas/acentos), o ID de la variante.
 # Cada oferta: cantidad y precio TOTAL. El precio de lista por unidad es el de la oferta de 1 unidad.
 # Si un producto no está aquí, se vende 1 unidad al precio que tenga en Shopify.
 OFERTAS: dict[str, list[dict]] = {
-    "AO BLACK MACA": [
+    "ao-black-maca-potencia-brutal": [
         {"cantidad": 1, "precio": 37500},
         {"cantidad": 2, "precio": 57500, "etiqueta": "Más vendido"},
         {"cantidad": 3, "precio": 65500, "etiqueta": "Mejor precio"},
@@ -42,10 +43,11 @@ def _clave(texto: str) -> str:
     return unicodedata.normalize("NFD", texto or "").encode("ascii", "ignore").decode().upper().strip()
 
 
-def ofertas_de(variante_id: str, titulo: str, precio_shopify: Decimal) -> list[dict]:
+def ofertas_de(variante_id: str, titulo: str, precio_shopify: Decimal, direccion: str = "") -> list[dict]:
     """Ofertas que se muestran para un producto. Precios en Decimal, siempre del servidor.
     'lista' = precio por unidad sin descuento; 'antes' = lista × cantidad (el precio tachado)."""
-    config = OFERTAS.get(str(variante_id)) or {_clave(k): v for k, v in OFERTAS.items()}.get(_clave(titulo))
+    por_clave = {_clave(k): v for k, v in OFERTAS.items()}
+    config = OFERTAS.get(str(variante_id)) or por_clave.get(_clave(direccion)) or por_clave.get(_clave(titulo))
     if not config:
         return [{"cantidad": 1, "precio": precio_shopify, "lista": precio_shopify, "antes": precio_shopify, "etiqueta": None}]
     base = next((o for o in config if o["cantidad"] == 1), config[0])
