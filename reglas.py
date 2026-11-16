@@ -191,6 +191,7 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         "lineItems": [{
             "variantId": f"gid://shopify/ProductVariant/{variante_id}",
             "quantity": oferta["cantidad"],
+            "requiresShipping": True,  # sin esto Shopify marca "No se requiere envío" (pedido #3805)
             "priceSet": dinero(oferta["lista"]),
         }],
         "shippingAddress": direccion,

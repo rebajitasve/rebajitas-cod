@@ -39,7 +39,7 @@ En Shopify: Tienda online → Personalizar → plantilla de producto de AO Black
 Ver `.env.example`. Nunca se sube a GitHub.
 - `MODO_PRUEBA` — 1 no crea pedidos; 0 crea pedidos reales.
 - `SHOPIFY_TIENDA` — nombre.myshopify.com
-- `SHOPIFY_TOKEN` o bien `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` — llaves de la app en Shopify (permiso: crear pedidos y leer productos).
+- `SHOPIFY_TOKEN` o bien `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` — llaves de la app en Shopify (permisos: write_orders, read_products, read_customers, write_customers).
 - `TIENDA_ORIGENES` — direcciones de la tienda autorizadas a enviar el formulario.
 
 ## Google Sheets
@@ -73,3 +73,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.12 — Arreglo: Shopify rechazaba el pedido al enlazar el cliente sin correo; ya no se enlaza cliente.
 - v0.13 — Campo Cédula (V/E) obligatorio y entrega a domicilio en Caracas (dirección en vez de oficina).
 - v0.14 — Todo Miranda con entrega a domicilio; cédula en la columna P de la hoja; verificación de Google Sheets en la pantalla de la app.
+- v0.15 — Primer pedido real OK (#3805). Se enlaza/crea el cliente por teléfono y el pedido queda como "requiere envío".

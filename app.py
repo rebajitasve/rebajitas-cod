@@ -149,7 +149,11 @@ async def pedido(request: Request):
         except (ValueError, IndexError, TypeError):
             oferta = ofertas[0]
         utm = cuerpo.get("utm") if isinstance(cuerpo.get("utm"), dict) else {}
-        resultado = shopify.crear_pedido(reglas.armar_pedido(datos, variante, oferta, v["moneda"], ip, utm))
+        orden = reglas.armar_pedido(datos, variante, oferta, v["moneda"], ip, utm)
+        cliente_id = shopify.buscar_o_crear_cliente(datos["nombre"], datos["apellido"], datos["telefono"])
+        if cliente_id:
+            orden["customer"] = {"toAssociate": {"id": cliente_id}}
+        resultado = shopify.crear_pedido(orden)
     except shopify.ErrorShopify as e:
         log.error("Pedido NO creado (variante %s): %s", variante, e)
         return JSONResponse({"error": "No pudimos registrar tu pedido. Intenta de nuevo en un momento o escríbenos por WhatsApp."},

@@ -1,10 +1,13 @@
 """Conexión con Shopify: leer el producto y crear el pedido. Solo usa lo necesario para estas dos cosas."""
+import logging
 import time
 from decimal import Decimal
 
 import httpx
 
 import config
+
+log = logging.getLogger("cod")
 
 
 class ErrorShopify(Exception):
@@ -93,6 +96,30 @@ def leer_variante(variante_id: str, cliente=None) -> dict:
         "disponible": v["availableForSale"],
         "moneda": datos["shop"]["currencyCode"],
     }
+
+
+def buscar_o_crear_cliente(nombre: str, apellido: str, telefono: str, cliente=None) -> str | None:
+    """Devuelve el ID del cliente en Shopify con ese teléfono (lo crea si no existe), para enlazarlo al pedido.
+    Necesita los permisos read_customers y write_customers. Si algo falla, devuelve None y el pedido
+    se crea igual, sin cliente (nunca se pierde una venta por esto)."""
+    if config.MODO_PRUEBA:
+        return None
+    try:
+        encontrado = _consulta("""
+            query($q: String!) { customers(first: 1, query: $q) { nodes { id } } }""",
+            {"q": f"phone:{telefono}"}, cliente)["customers"]["nodes"]
+        if encontrado:
+            return encontrado[0]["id"]
+        creado = _consulta("""
+            mutation($input: CustomerInput!) {
+              customerCreate(input: $input) { customer { id } userErrors { field message } }
+            }""", {"input": {"firstName": nombre, "lastName": apellido, "phone": telefono}}, cliente)["customerCreate"]
+        if creado["customer"]:
+            return creado["customer"]["id"]
+        log.warning("Cliente no creado (%s): %s", telefono[-4:], "; ".join(e["message"] for e in creado["userErrors"]))
+    except (ErrorShopify, KeyError, TypeError) as e:
+        log.warning("No se pudo buscar/crear el cliente; el pedido sale sin cliente: %s", e)
+    return None
 
 
 def crear_pedido(pedido: dict, cliente=None) -> dict:

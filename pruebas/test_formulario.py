@@ -286,3 +286,27 @@ def test_sheets_cedula_y_verificacion(monkeypatch):
         cliente = httpx.Client(transport=httpx.MockTransport(lambda r, x=respuesta: x))
         resultado = sheets.verificar(cliente)
         assert resultado[0] == ok and texto in resultado[1], resultado
+
+
+def test_cliente_buscar_o_crear(monkeypatch):
+    monkeypatch.setattr(config, "MODO_PRUEBA", False)
+    monkeypatch.setattr(config, "SHOPIFY_TIENDA", "tienda.myshopify.com")
+    monkeypatch.setattr(config, "SHOPIFY_TOKEN", "x")
+
+    def con(respuestas):
+        cola = list(respuestas)
+        return httpx.Client(transport=httpx.MockTransport(lambda r: cola.pop(0)))
+    existe = con([httpx.Response(200, json={"data": {"customers": {"nodes": [{"id": "gid://shopify/Customer/7"}]}}})])
+    assert shopify.buscar_o_crear_cliente("Ana", "Rojas", "+584241234567", existe) == "gid://shopify/Customer/7"
+    nuevo = con([httpx.Response(200, json={"data": {"customers": {"nodes": []}}}),
+                 httpx.Response(200, json={"data": {"customerCreate": {"customer": {"id": "gid://shopify/Customer/8"}, "userErrors": []}}})])
+    assert shopify.buscar_o_crear_cliente("Ana", "Rojas", "+584241234567", nuevo) == "gid://shopify/Customer/8"
+    # Sin permiso de clientes: no falla, el pedido sale sin cliente
+    sin_permiso = con([httpx.Response(200, json={"errors": [{"message": "Access denied for customers field."}]})])
+    assert shopify.buscar_o_crear_cliente("Ana", "Rojas", "+584241234567", sin_permiso) is None
+
+
+def test_pedido_requiere_envio():
+    datos, _ = reglas.validar_datos(BUENOS)
+    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
+    assert p["lineItems"][0]["requiresShipping"] is True

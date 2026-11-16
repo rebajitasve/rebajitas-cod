@@ -44,7 +44,8 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
   - Ciudad: la **oficina TEALCA** (ej. LECHERÍA).
   - Estado: código de Shopify (A = Distrito Capital, B = Anzoátegui, G = Carabobo, …; lista en `reglas.py`).
   - País Venezuela y teléfono `+58…`.
-- Cliente: **no se enlaza**. Shopify exige correo para crear/enlazar cliente desde la app (`OrderCreateUpsertCustomerAttributesInput requires at least one of id, email`, 16-nov-2026). El pedido igual lleva nombre, teléfono y dirección. Si se quiere el recuadro "Cliente", hay que dar a la app el permiso `write_customers` y buscar/crear el cliente por teléfono.
+- Cliente: se busca en Shopify por teléfono y, si no existe, se crea (nombre, apellido, teléfono); luego se enlaza al pedido. Necesita los permisos `read_customers` y `write_customers` en la app. Si falla (por ejemplo sin esos permisos), el pedido se crea igual sin cliente. (El enlace directo por teléfono no se puede: Shopify exige correo, error del 16-nov-2026.)
+- Cada producto va marcado como **requiere envío** (sin esto Shopify mostraba "No se requiere envío", pedido #3805).
 - Sin nota.
 - Etiquetas: `COD`, `Formulario Rebajitas` (la etiqueta `releasit_cod_form` no la usa nadie, confirmado por Mike).
 - Datos adicionales, con los mismos nombres que Releasit: UTM term, UTM content, UTM campaign, UTM medium, UTM source (si el cliente llegó por un anuncio), Country code, Nombre, Apellido, Teléfono (10 dígitos, sin +58), Estado (en mayúsculas), Ciudad, Oficina de TEALCA, IP address.
@@ -59,7 +60,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 
 ## Tienda
 - Shopify: `e1bvrm-ze.myshopify.com` · Pública: `rebajitasve.com`
-- App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
+- App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products, read_customers, write_customers`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
 
 ## Diagnóstico
 - Si el botón no aparece, abrir la página del producto con `?rcod=1` al final (o en vista previa del tema): arriba sale una franja oscura con cada paso (✔/✖) y el motivo. Los clientes no la ven.
