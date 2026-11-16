@@ -68,3 +68,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.8 — Ciudad como lista desplegable que depende del estado (497 ciudades), con opción "Otra ciudad (escribirla)".
 - v0.9 — El pedido en Shopify queda con el formato de Releasit: dirección = ciudad, ciudad = oficina TEALCA, código de estado, pago COD pendiente, envío "Gratis", cliente enlazado, sin nota.
 - v0.10 — Google Sheets: cada pedido real se agrega a la pestaña del mes ("Tealca {mes} COD") con las columnas de Releasit.
+- v0.11 — `MODO_PRUEBA` ya no tiene valor en `render.yaml`: se maneja solo desde la página de Render (antes cada subida lo devolvía a 1).

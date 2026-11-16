@@ -14,8 +14,8 @@ services:
         value: 3.12.10
       - key: HOST
         value: 0.0.0.0
-      - key: MODO_PRUEBA       # "0" = crea pedidos reales
-        value: "1"
+      - key: MODO_PRUEBA       # "1" = prueba, "0" = crea pedidos reales. Se decide SOLO en la página de Render
+        sync: false            # (si tuviera un valor aquí, cada subida a GitHub lo volvería a poner)
       - key: SHOPIFY_TIENDA    # dirección interna de la tienda en Shopify
         value: e1bvrm-ze.myshopify.com
       - key: SHOPIFY_CLIENT_ID      # "ID de cliente" de la app en dev.shopify.com
