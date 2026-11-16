@@ -48,7 +48,8 @@ Ver `.env.example`. Nunca se sube a GitHub.
 3. Copiar la **URL de la aplicación web** (termina en `/exec`).
 4. En Render → rebajitas-cod → Environment: `SHEETS_URL` = esa URL, `SHEETS_CLAVE` = la misma clave.
 - La pestaña se elige sola por mes: "Tealca {mes} COD" (ej. "Tealca Diciembre COD"). **Hay que crear la pestaña del mes antes del día 1**; si no existe, los pedidos van a una pestaña "Pedidos sin pestaña".
-- Solo escribe columnas A–H y T–W. En modo prueba no escribe nada.
+- Solo escribe columnas A–H, P (cédula) y T–W. En modo prueba no escribe nada.
+- La pantalla https://rebajitas-cod.onrender.com revisa la conexión con la hoja (sin escribir) y dice qué falla.
 - Si se cambia el código de Apps Script: **Implementar → Gestionar implementaciones → editar → Nueva versión** (así la URL no cambia).
 
 ## Render
@@ -71,3 +72,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.11 — `MODO_PRUEBA` ya no tiene valor en `render.yaml`: se maneja solo desde la página de Render (antes cada subida lo devolvía a 1).
 - v0.12 — Arreglo: Shopify rechazaba el pedido al enlazar el cliente sin correo; ya no se enlaza cliente.
 - v0.13 — Campo Cédula (V/E) obligatorio y entrega a domicilio en Caracas (dirección en vez de oficina).
+- v0.14 — Todo Miranda con entrega a domicilio; cédula en la columna P de la hoja; verificación de Google Sheets en la pantalla de la app.

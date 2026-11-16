@@ -34,6 +34,7 @@ def armar_fila(datos: dict, producto: str, oferta: dict, utm: dict, ahora: datet
         "oficina": f"DOMICILIO: {datos['direccion']}" if datos.get("domicilio") else datos["oficina"],
         "producto": producto,
         "cantidad": oferta["cantidad"],
+        "cedula": datos.get("cedula") or "",
         "valor": float(oferta["precio"]),
         "utm_source": str(utm.get("utm_source") or "")[:150],
         "utm_campaign": str(utm.get("utm_campaign") or "")[:150],
@@ -69,6 +70,39 @@ def enviar(numero: str, datos: dict, producto: str, oferta: dict, utm: dict, cli
     finally:
         if propio:
             cliente.close()
+
+
+def verificar(cliente=None) -> tuple[bool, str]:
+    """Revisa la conexión con la hoja SIN escribir nada. Devuelve (todo bien, explicación en palabras simples)."""
+    if not activo():
+        return False, "sin configurar (faltan SHEETS_URL o SHEETS_CLAVE en Render)"
+    hoja = nombre_hoja(datetime.now(HORA_VENEZUELA))
+    propio = cliente is None
+    cliente = cliente or httpx.Client(timeout=30, follow_redirects=True)
+    try:
+        r = cliente.post(config.SHEETS_URL, json={"clave": config.SHEETS_CLAVE, "hoja": hoja, "prueba": True})
+        texto = r.text[:3000]
+    except httpx.HTTPError as e:
+        return False, f"Google no respondió ({type(e).__name__}). Revisa que SHEETS_URL sea la dirección que termina en /exec"
+    finally:
+        if propio:
+            cliente.close()
+    try:
+        j = r.json()
+    except ValueError:
+        if "accounts.google.com" in texto or "ServiceLogin" in texto or "Iniciar sesión" in texto or "Sign in" in texto:
+            return False, ("Google pide iniciar sesión: en Apps Script → Implementar → Gestionar implementaciones, "
+                           "'Quién tiene acceso' debe ser 'Cualquier persona'")
+        if "Cannot read" in texto or "TypeError" in texto:
+            return False, "el código de la hoja está desactualizado: pega la versión nueva y crea una nueva versión de la implementación"
+        return False, f"la dirección no devolvió una respuesta de la hoja (código {r.status_code}). Revisa SHEETS_URL"
+    if j.get("ok") and j.get("existe", True):
+        return True, f"conectado (pestaña de este mes: «{hoja}»)"
+    if j.get("ok"):
+        return False, f"conectado, pero NO existe la pestaña «{hoja}» (los pedidos irían a 'Pedidos sin pestaña')"
+    if j.get("error") == "clave incorrecta":
+        return False, "la clave no coincide: SHEETS_CLAVE en Render debe ser igual a CLAVE en el código de la hoja"
+    return False, f"la hoja respondió con error: {j.get('error', 'desconocido')}"
 
 
 def enviar_en_segundo_plano(*args):

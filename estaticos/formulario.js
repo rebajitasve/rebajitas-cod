@@ -144,7 +144,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   // así que forzamos que se muestre.
   raiz.style.setProperty("display", "block", "important");
   var sombraBoton = raiz.attachShadow({ mode: "open" });
-  sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en TEALCA · Domicilio en Caracas</span></button></div>';
+  sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en TEALCA · Domicilio en Caracas y Miranda</span></button></div>';
   var boton = sombraBoton.querySelector(".abrir");
 
   fetch(SERVIDOR + "/api/producto/" + encodeURIComponent(VARIANTE))
@@ -230,7 +230,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<div class="campo full" data-campo="oficina"><label for="oficina">Oficina TEALCA para retirar</label><div class="ctrl" id="ctrl-oficina"></div><div class="ayuda" hidden></div></div>' +
       '<div class="campo full" data-campo="direccion" hidden><label for="direccion">Dirección de entrega</label><div class="ctrl">' +
       '<textarea id="direccion" autocomplete="street-address" maxlength="200" placeholder="Calle o avenida, edificio o casa, piso/apto y un punto de referencia"></textarea></div>' +
-      '<div class="ayuda" data-normal="Entrega a domicilio en Caracas: escribe la dirección completa">Entrega a domicilio en Caracas: escribe la dirección completa</div></div>' +
+      '<div class="ayuda" data-normal="Entrega a domicilio: escribe la dirección completa">Entrega a domicilio: escribe la dirección completa</div></div>' +
       '<div class="campo full" data-campo="cedula"><label for="cedula" id="l-cedula">Cédula de quien retira</label><div class="ctrl">' +
       '<select id="cedula-tipo" class="tipo" aria-label="Tipo de cédula"><option>V</option><option>E</option></select>' +
       '<input id="cedula" inputmode="numeric" placeholder="12345678" maxlength="10"></div><div class="ayuda" hidden></div></div>' +
@@ -302,7 +302,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   // Entrega a domicilio (ej. Caracas): se cambia la oficina por la dirección y se ajustan los textos.
   function esDomicilio() {
     var estado = sombra.querySelector("#estado").value, ciudad = sombra.querySelector("#ciudad").value;
-    return ((datos.domicilio || {})[estado] || []).indexOf(ciudad) >= 0;
+    var regla = (datos.domicilio || {})[estado] || [];
+    return regla === "*" ? !!estado : regla.indexOf(ciudad) >= 0;
   }
   function entrega() {
     var dom = esDomicilio(), $ = function (q) { return sombra.querySelector(q); };

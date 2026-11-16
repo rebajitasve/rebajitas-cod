@@ -2,7 +2,7 @@
  * Rebajitas COD → Google Sheets.
  * Se pega en la hoja "Rebajitas": Extensiones → Apps Script. Ver LEEME.md, sección Google Sheets.
  * Recibe cada pedido nuevo desde la app y lo agrega como fila en la pestaña del mes,
- * con las mismas columnas que usaba Releasit. Solo escribe A–H y T–W: las columnas del equipo no se tocan.
+ * con las mismas columnas que usaba Releasit. Solo escribe A–H, P (cédula) y T–W: las columnas del equipo no se tocan.
  */
 const CLAVE = 'PEGA_AQUI_LA_CLAVE';  // la misma que SHEETS_CLAVE en Render
 
@@ -12,6 +12,10 @@ function doPost(e) {
   if (datos.clave !== CLAVE) return responder({ ok: false, error: 'clave incorrecta' });
 
   const libro = SpreadsheetApp.getActiveSpreadsheet();
+  if (datos.prueba) {
+    // Verificación desde la app: no escribe nada, solo dice si la pestaña del mes existe.
+    return responder({ ok: true, hoja: datos.hoja, existe: !!libro.getSheetByName(datos.hoja) });
+  }
   let hoja = libro.getSheetByName(datos.hoja);
   let aviso = '';
   if (!hoja) {
@@ -27,6 +31,7 @@ function doPost(e) {
     const f = datos.fila;
     hoja.getRange(fila, 3).setNumberFormat('@');  // teléfono como texto, para que se vea el +58
     hoja.getRange(fila, 1, 1, 8).setValues([[f.fecha, f.nombre, f.telefono, f.estado, f.oficina, f.producto, f.cantidad, f.valor]]);
+    hoja.getRange(fila, 16).setValue(f.cedula || '');  // P: cédula de quien retira/recibe
     hoja.getRange(fila, 20, 1, 4).setValues([[f.utm_source, f.utm_campaign, f.utm_medium, f.utm_content]]);
   } finally {
     candado.releaseLock();

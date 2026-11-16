@@ -1,6 +1,5 @@
 """Servidor del formulario: entrega el formulario a la tienda y crea los pedidos en Shopify."""
 import logging
-from datetime import datetime
 from html import escape
 import threading
 import time
@@ -58,8 +57,8 @@ def inicio():
             log.warning("Prueba de conexión fallida: %s", e)
             conexion, ok = "Las llaves no funcionan. Revisa el ID y el secreto del cliente en Render", False
     modo = "Modo prueba: el formulario NO crea pedidos reales" if config.MODO_PRUEBA else "Modo real: el formulario crea pedidos"
-    hoja = (f"Google Sheets: conectado (pestaña de este mes: «{sheets.nombre_hoja(datetime.now(sheets.HORA_VENEZUELA))}»)"
-            if sheets.activo() else "Google Sheets: sin configurar")
+    hoja_ok, hoja_txt = sheets.verificar()
+    hoja = ("✔ " if hoja_ok else "✖ ") + "Google Sheets: " + hoja_txt
     color = "#0d7a50" if ok else "#c2372f"
     return f"""<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rebajitas COD</title>

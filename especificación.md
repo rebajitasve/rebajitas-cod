@@ -20,9 +20,9 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 ## Cédula y entrega a domicilio
 - Campo obligatorio **Cédula de quien retira** (o "de quien recibe" en domicilio), debajo de la oficina: letra V/E + 5 a 9 números. Se guarda como `V-12345678`.
 - En Shopify: línea 2 de la dirección `C.I. V-12345678` y dato adicional "Cédula".
-- **Entrega a domicilio** (`ENTREGA_DOMICILIO` en `reglas.py`, hoy: Distrito Capital → Caracas): al elegir esa ciudad desaparece la oficina y aparece "Dirección de entrega" (mínimo 10 letras). Textos: "Entrega a domicilio · Pagas al recibir".
+- **Entrega a domicilio** (`ENTREGA_DOMICILIO` en `reglas.py`, hoy: Distrito Capital → Caracas, y **todo Miranda**; mismo costo que el retiro en oficina): al elegir esa ciudad desaparece la oficina y aparece "Dirección de entrega" (mínimo 10 letras). Textos: "Entrega a domicilio · Pagas al recibir".
 - Pedido a domicilio en Shopify: dirección = la del cliente, ciudad = Caracas, estado A, envío "Entrega a domicilio" (0), etiqueta `DOMICILIO`, datos adicionales "Oficina de TEALCA" = ENTREGA A DOMICILIO, "Dirección", "Tipo de entrega".
-- En Google Sheets, columna Oficina = `DOMICILIO: <dirección>`. La cédula aún no va a la hoja (pendiente: Mike dice en qué columna).
+- En Google Sheets, columna Oficina = `DOMICILIO: <dirección>`. La cédula va en la **columna P**.
 
 ## Ciudades
 - La ciudad se elige de una lista que depende del estado (`ciudades_ve.json`, 497 ciudades). Fuente: venezuela-json de Zokeber (CC BY 4.0), corregida: Caracas en Distrito Capital, Vargas pasa a La Guaira con sus ciudades, y se agregaron San Diego, El Limón, Villa del Rosario, Ciudad Guayana, Santa Teresa del Tuy, Petare, Baruta, Chacao, El Hatillo, Juan Griego, Ureña y Pedernales.
@@ -86,7 +86,8 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 ## Google Sheets
 - Hoja "Rebajitas", pestaña del mes con nombre exacto **"Tealca Noviembre COD"** (una pestaña nueva cada mes).
 - Funciona con un código de Apps Script pegado en la hoja (`integraciones/google_sheets.gs`) que recibe cada pedido real y agrega la fila. La pestaña se elige por mes (`SHEETS_HOJA` = "Tealca {mes} COD"); si no existe, va a "Pedidos sin pestaña". Se envía en segundo plano (el cliente no espera) con 3 reintentos; si falla, queda en el registro de Render para anotarlo a mano.
-- Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
+- La pantalla de la app (`/`) verifica la hoja sin escribir nada y dice en palabras simples qué falla (acceso, clave, pestaña del mes inexistente, código desactualizado).
+- Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; P Cédula; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
 
 ## Datos pendientes de Mike
 - ¿El precio de AO Black Maca en Shopify (Bs.S. 32.450) debe pasar a 37.500? El formulario usa 37.500 de todas formas.

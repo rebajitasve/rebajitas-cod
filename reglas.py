@@ -33,12 +33,13 @@ CODIGO_ESTADO = {
 # Forma de pago que muestra Shopify en el pedido (igual que Releasit).
 PASARELA_COD = "Cash on Delivery (COD)"
 
-# Ciudades con entrega a domicilio (en vez de retiro en oficina TEALCA): estado -> ciudades.
-ENTREGA_DOMICILIO = {"Distrito Capital": ["Caracas"]}
+# Entrega a domicilio (en vez de retiro en oficina TEALCA): estado -> lista de ciudades, o "*" = todo el estado.
+ENTREGA_DOMICILIO = {"Distrito Capital": ["Caracas"], "Miranda": "*"}
 
 
 def es_domicilio(estado: str, ciudad: str) -> bool:
-    return ciudad in ENTREGA_DOMICILIO.get(estado, [])
+    regla = ENTREGA_DOMICILIO.get(estado, [])
+    return regla == "*" or ciudad in regla
 
 
 def normalizar_cedula(texto: str) -> str | None:

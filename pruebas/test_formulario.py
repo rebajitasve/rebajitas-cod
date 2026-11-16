@@ -258,3 +258,31 @@ def test_caracas_entrega_a_domicilio():
     # Otra ciudad del Distrito Capital (escrita a mano) sigue siendo retiro en oficina
     _, errores = reglas.validar_datos({**BUENOS, "estado": "Distrito Capital", "ciudad": "El Junquito", "oficina": "JUNQUITO"})
     assert not errores
+
+
+def test_miranda_todo_a_domicilio():
+    assert reglas.es_domicilio("Miranda", "Petare") and reglas.es_domicilio("Miranda", "Un pueblo escrito a mano")
+    assert reglas.es_domicilio("Distrito Capital", "Caracas") and not reglas.es_domicilio("Carabobo", "Valencia")
+    datos, errores = reglas.validar_datos({**BUENOS, "estado": "Miranda", "ciudad": "Los Teques", "oficina": "LOS TEQUES",
+                                           "direccion": "Calle 5, casa 12, El Trigo, al lado de la iglesia"})
+    assert not errores and datos["domicilio"] and datos["oficina"] == ""
+
+
+def test_sheets_cedula_y_verificacion(monkeypatch):
+    from datetime import datetime
+    datos, _ = reglas.validar_datos(BUENOS)
+    fila = sheets.armar_fila(datos, "AO", reglas.ofertas_de("1", "x", Decimal("10"))[0], {}, datetime(2026, 11, 16))
+    assert fila["cedula"] == "V-12345678"
+    monkeypatch.setattr(config, "SHEETS_URL", "https://script.google.com/macros/s/x/exec")
+    monkeypatch.setattr(config, "SHEETS_CLAVE", "k")
+    casos = [
+        (httpx.Response(200, json={"ok": True, "hoja": "h", "existe": True}), True, "conectado"),
+        (httpx.Response(200, json={"ok": True, "hoja": "h", "existe": False}), False, "NO existe"),
+        (httpx.Response(200, json={"ok": False, "error": "clave incorrecta"}), False, "clave no coincide"),
+        (httpx.Response(200, text="<html>Sign in - Google Accounts accounts.google.com</html>"), False, "Cualquier persona"),
+        (httpx.Response(200, text="<html>TypeError: Cannot read properties of undefined</html>"), False, "desactualizado"),
+    ]
+    for respuesta, ok, texto in casos:
+        cliente = httpx.Client(transport=httpx.MockTransport(lambda r, x=respuesta: x))
+        resultado = sheets.verificar(cliente)
+        assert resultado[0] == ok and texto in resultado[1], resultado
