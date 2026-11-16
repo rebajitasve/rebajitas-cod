@@ -58,7 +58,7 @@ def test_pedido_bien_armado():
     assert p["transactions"][0]["gateway"] == "Cash on Delivery (COD)" and p["transactions"][0]["status"] == "PENDING"
     assert p["transactions"][0]["amountSet"]["shopMoney"]["amount"] == "32450.00"
     assert p["shippingLines"][0]["title"] == "Gratis" and "note" not in p
-    assert p["customer"]["toUpsert"]["phone"] == "+584121234567"
+    assert "customer" not in p  # Shopify exige correo para enlazar cliente (pedido real del 16-nov rechazado)
     assert "COD" in p["tags"] and p["financialStatus"] == "PENDING"
 
 

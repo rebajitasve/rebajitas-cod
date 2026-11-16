@@ -120,7 +120,8 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
     """Arma el pedido tal como se envía a Shopify (orderCreate).
     Copia el formato de los pedidos de Releasit, para que Pancake, Sheets y Dropanas los lean igual:
     dirección = la ciudad que eligió el cliente, ciudad = la oficina TEALCA, estado con su código de Shopify,
-    pago pendiente por "Cash on Delivery (COD)", envío "Gratis" y cliente creado o enlazado por su teléfono."""
+    pago pendiente por "Cash on Delivery (COD)" y envío "Gratis".
+    No se enlaza un cliente: Shopify exige correo para eso y el formulario no lo pide (el pedido igual lleva nombre y teléfono)."""
     dinero = lambda valor: {"shopMoney": {"amount": f"{valor:.2f}", "currencyCode": moneda}}
     direccion = {
         "firstName": datos["nombre"],
@@ -156,7 +157,6 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         "billingAddress": direccion,
         "shippingLines": [{"title": "Gratis", "priceSet": dinero(0)}],
         "transactions": [{"kind": "SALE", "status": "PENDING", "gateway": PASARELA_COD, "amountSet": dinero(oferta["precio"])}],
-        "customer": {"toUpsert": {"firstName": datos["nombre"], "lastName": datos["apellido"], "phone": datos["telefono"]}},
         "tags": ETIQUETAS_PEDIDO,
         "customAttributes": atributos,
     }

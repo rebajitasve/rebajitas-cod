@@ -37,7 +37,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
   - Ciudad: la **oficina TEALCA** (ej. LECHERÍA).
   - Estado: código de Shopify (A = Distrito Capital, B = Anzoátegui, G = Carabobo, …; lista en `reglas.py`).
   - País Venezuela y teléfono `+58…`.
-- Cliente: se crea o se enlaza por su teléfono (como Releasit).
+- Cliente: **no se enlaza**. Shopify exige correo para crear/enlazar cliente desde la app (`OrderCreateUpsertCustomerAttributesInput requires at least one of id, email`, 16-nov-2026). El pedido igual lleva nombre, teléfono y dirección. Si se quiere el recuadro "Cliente", hay que dar a la app el permiso `write_customers` y buscar/crear el cliente por teléfono.
 - Sin nota.
 - Etiquetas: `COD`, `Formulario Rebajitas` (la etiqueta `releasit_cod_form` no la usa nadie, confirmado por Mike).
 - Datos adicionales, con los mismos nombres que Releasit: UTM term, UTM content, UTM campaign, UTM medium, UTM source (si el cliente llegó por un anuncio), Country code, Nombre, Apellido, Teléfono (10 dígitos, sin +58), Estado (en mayúsculas), Ciudad, Oficina de TEALCA, IP address.
