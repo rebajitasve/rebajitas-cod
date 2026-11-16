@@ -42,7 +42,10 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
 
 ## Diagnóstico
-- Si el botón no aparece, abrir la página del producto con `?rcod=1` al final (o en vista previa del tema): sale un recuadro rojo con el motivo. Los clientes no lo ven.
+- Si el botón no aparece, abrir la página del producto con `?rcod=1` al final (o en vista previa del tema): arriba sale una franja oscura con cada paso (✔/✖) y el motivo. Los clientes no la ven.
+- Si no sale ni la franja, el bloque no está en la plantilla que usa ese producto.
+- El tema de la tienda esconde cajas "vacías" (`div:empty`); por eso el bloque se fuerza a `display:block`.
+- El bloque debe estar pegado **una sola vez** por página (debajo del precio).
 
 ## Protecciones
 - Teléfono: solo celulares venezolanos (412, 414, 416, 422, 424, 426), con o sin 0 o +58.

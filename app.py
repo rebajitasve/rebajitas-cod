@@ -75,8 +75,8 @@ def salud():
 
 @app.get("/formulario.js")
 def formulario_js():
-    return FileResponse(ESTATICOS / "formulario.js", media_type="application/javascript",
-                        headers={"Cache-Control": "public, max-age=300"})
+    return FileResponse(ESTATICOS / "formulario.js", media_type="application/javascript; charset=utf-8",
+                        headers={"Cache-Control": "public, max-age=60"})
 
 
 @app.get("/prueba", response_class=HTMLResponse)

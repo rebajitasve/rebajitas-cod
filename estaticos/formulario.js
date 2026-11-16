@@ -2,10 +2,40 @@
    Se instala en la tienda con un bloque "Liquid personalizado" (ver LEEME.md). */
 (function () {
   "use strict";
-  var script = document.currentScript;
-  var SERVIDOR = script ? new URL(script.src).origin : "";
+  var script = document.currentScript || document.querySelector('script[src*="formulario.js"]');
+  var SERVIDOR = script && script.src ? new URL(script.src).origin : "https://rebajitas-cod.onrender.com";
+  // Diagnóstico: abriendo el producto con ?rcod=1 aparece una franja abajo que dice en qué paso se traba.
+  var DIAG = /[?&](rcod|preview_theme_id|oseid)=/.test(location.search) || /shopifypreview\.com$/.test(location.hostname) ||
+    !!(window.Shopify && window.Shopify.designMode);
+  function aviso(texto, ok) {
+    if (window.console) console[ok ? "log" : "warn"]("Rebajitas COD: " + texto);
+    if (!DIAG || !document.body) return;
+    var b = document.getElementById("rebajitas-cod-diag");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "rebajitas-cod-diag";
+      b.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:2147483646;background:#14181b;color:#fff;" +
+        "font:13px/1.4 system-ui,sans-serif;padding:10px 40px 10px 12px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);" +
+        "max-height:35vh;overflow:auto";
+      b.innerHTML = '<b>Rebajitas COD · diagnóstico (solo lo ves tú)</b><button type="button" aria-label="Cerrar diagnóstico" ' +
+        'style="position:absolute;top:6px;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:#333;color:#fff;font-size:16px;cursor:pointer">×</button>';
+      b.querySelector("button").addEventListener("click", function () { b.remove(); });
+      document.body.appendChild(b);
+    }
+    var l = document.createElement("div");
+    l.textContent = (ok ? "✔ " : "✖ ") + texto;
+    l.style.color = ok ? "#7ee2b0" : "#ff9b93";
+    b.appendChild(l);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
+  else arrancar();
+
+  function arrancar() {
+  aviso("El programa del botón cargó desde " + SERVIDOR, true);
   var raiz = document.getElementById("rebajitas-cod");
-  if (!raiz || raiz.dataset.listo) return;
+  if (!raiz) { aviso("No encontré el bloque del botón en esta página. Revisa que el bloque esté en la plantilla que usa este producto.", false); return; }
+  if (raiz.dataset.listo) return;
+  if (document.querySelectorAll("#rebajitas-cod").length > 1) aviso("El bloque del botón está pegado más de una vez en esta página: deja solo uno.", false);
   raiz.dataset.listo = "1";
   var VARIANTE = raiz.dataset.variante || "";
   var IMAGEN = raiz.dataset.imagen || "";
@@ -107,6 +137,9 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   function unidades(q) { return q + (q === 1 ? " unidad" : " unidades"); }
 
   // ---- Botón en la página del producto ----
+  // Algunos temas (como Dawn) esconden las cajas "vacías" (div:empty). La nuestra se dibuja por dentro,
+  // así que forzamos que se muestre.
+  raiz.style.setProperty("display", "block", "important");
   var sombraBoton = raiz.attachShadow({ mode: "open" });
   sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en oficina TEALCA</span></button></div>';
   var boton = sombraBoton.querySelector(".abrir");
@@ -115,25 +148,20 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (d) {
       datos = d;
-      if (!d.disponible) return;
+      aviso("Bloque encontrado y producto leído: " + d.titulo + " (" + d.ofertas.length + " oferta" + (d.ofertas.length === 1 ? "" : "s") + ")" +
+        (d.modo_prueba ? " · modo prueba" : ""), true);
+      if (!d.disponible) { aviso("Shopify dice que el producto está agotado: por eso el botón no se muestra.", false); return; }
       elegida = d.ofertas.length > 1 ? 1 : 0;
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
     })
     .catch(function (err) {
       // Si el servidor no responde, no se muestra el botón y la tienda sigue normal.
-      // Solo en vista previa del tema (no la ven los clientes) se muestra el motivo, para poder arreglarlo.
       var motivo = !VARIANTE ? "falta el producto en el bloque"
         : err && err.message === "502" ? "el servidor no pudo leer el producto en Shopify (revisa la conexión en " + SERVIDOR + ")"
         : err && /^\d+$/.test(err.message) ? "el servidor respondió con error " + err.message
         : "no se pudo conectar con el servidor (" + SERVIDOR + ") desde esta dirección: " + location.hostname;
-      if (window.console) console.warn("Rebajitas COD: " + motivo);
-      var preview = /shopifypreview\.com$/.test(location.hostname) || /[?&](preview_theme_id|oseid|rcod)=/.test(location.search) ||
-        (window.Shopify && window.Shopify.designMode);
-      if (preview) {
-        sombraBoton.querySelector(".w").insertAdjacentHTML("beforeend",
-          '<div class="error">Rebajitas COD (aviso solo para ti, los clientes no lo ven): ' + esc(motivo) + "</div>");
-      }
+      aviso(motivo, false);
     });
 
   boton.addEventListener("click", abrir);
@@ -147,7 +175,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     if (!capa) construir();
     sombra.querySelector("form").hidden = false;
     sombra.querySelector(".listo").hidden = true;
-    capa.hidden = false;
+    capa.style.setProperty("display", "block", "important");
     scrollPrevio = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
     requestAnimationFrame(function () { sombra.querySelector(".fondo").classList.add("vis"); });
@@ -157,7 +185,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   function cerrar() {
     sombra.querySelector(".fondo").classList.remove("vis");
     document.documentElement.style.overflow = scrollPrevio;
-    setTimeout(function () { capa.hidden = true; if (ultimoFoco) ultimoFoco.focus(); }, 200);
+    setTimeout(function () { capa.style.setProperty("display", "none", "important"); if (ultimoFoco) ultimoFoco.focus(); }, 200);
   }
   function pixel() { /* Etapa 4: eventos del píxel de Meta. */ }
 
@@ -165,6 +193,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var d = datos;
     capa = document.createElement("div");
     capa.id = "rebajitas-cod-ventana";
+    capa.style.setProperty("display", "block", "important");
     document.body.appendChild(capa);
     sombra = capa.attachShadow({ mode: "open" });
     var titulo = d.titulo + (d.variante ? " · " + d.variante : "");
@@ -320,5 +349,6 @@ $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
     });
     if (primero) primero.focus();
     return !!primero;
+  }
   }
 })();
