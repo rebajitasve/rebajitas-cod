@@ -22,6 +22,17 @@ with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _
 with open(Path(__file__).parent / "ciudades_ve.json", encoding="utf-8") as _f:
     CIUDADES: dict[str, list[str]] = json.load(_f)["ciudades"]
 
+# Código de cada estado en Shopify (ISO 3166-2:VE). Releasit lo usa así: "LECHERÍA - B" = Anzoátegui.
+CODIGO_ESTADO = {
+    "Distrito Capital": "A", "Anzoátegui": "B", "Apure": "C", "Aragua": "D", "Barinas": "E", "Bolívar": "F",
+    "Carabobo": "G", "Cojedes": "H", "Falcón": "I", "Guárico": "J", "Lara": "K", "Mérida": "L", "Miranda": "M",
+    "Monagas": "N", "Nueva Esparta": "O", "Portuguesa": "P", "Sucre": "R", "Táchira": "S", "Trujillo": "T",
+    "Yaracuy": "U", "Zulia": "V", "La Guaira": "X", "Delta Amacuro": "Y", "Amazonas": "Z",
+}
+
+# Forma de pago que muestra Shopify en el pedido (igual que Releasit).
+PASARELA_COD = "Cash on Delivery (COD)"
+
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 
@@ -107,14 +118,16 @@ UTM_CAMPOS = [("utm_term", "UTM term"), ("utm_content", "UTM content"), ("utm_ca
 
 def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str, utm: dict | None = None) -> dict:
     """Arma el pedido tal como se envía a Shopify (orderCreate).
-    Los 'datos adicionales' copian los nombres que usaba Releasit, para que Pancake, Sheets y Dropanas los lean igual."""
+    Copia el formato de los pedidos de Releasit, para que Pancake, Sheets y Dropanas los lean igual:
+    dirección = la ciudad que eligió el cliente, ciudad = la oficina TEALCA, estado con su código de Shopify,
+    pago pendiente por "Cash on Delivery (COD)", envío "Gratis" y cliente creado o enlazado por su teléfono."""
     dinero = lambda valor: {"shopMoney": {"amount": f"{valor:.2f}", "currencyCode": moneda}}
     direccion = {
         "firstName": datos["nombre"],
         "lastName": datos["apellido"],
-        "address1": f"Oficina TEALCA: {datos['oficina']}",
-        "city": datos["ciudad"],
-        "province": datos["estado"],
+        "address1": datos["ciudad"],
+        "city": datos["oficina"],
+        "provinceCode": CODIGO_ESTADO[datos["estado"]],
         "countryCode": "VE",
         "phone": datos["telefono"],
     }
@@ -141,8 +154,10 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         }],
         "shippingAddress": direccion,
         "billingAddress": direccion,
+        "shippingLines": [{"title": "Gratis", "priceSet": dinero(0)}],
+        "transactions": [{"kind": "SALE", "status": "PENDING", "gateway": PASARELA_COD, "amountSet": dinero(oferta["precio"])}],
+        "customer": {"toUpsert": {"firstName": datos["nombre"], "lastName": datos["apellido"], "phone": datos["telefono"]}},
         "tags": ETIQUETAS_PEDIDO,
-        "note": f"Pago al recibir. Retiro en oficina TEALCA: {datos['oficina']} ({datos['ciudad']}, {datos['estado']}).",
         "customAttributes": atributos,
     }
     descuento = oferta["antes"] - oferta["precio"]

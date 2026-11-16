@@ -27,16 +27,24 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - Amazonas no tiene oficinas en la lista: ahí el cliente escribe la oficina a mano.
 - Revisar: en Carabobo aparece "CAUCAGUA–HIGUEROTE–BARLOVENTO–TACARIGUA", que parece de Miranda.
 
-## Cómo queda el pedido en Shopify
-- Producto y cantidad de la oferta elegida, con el precio del servidor. Estado de pago: **pendiente**.
-- Dirección de envío y facturación: nombre, apellido, `Oficina TEALCA: <oficina>`, ciudad, estado, país Venezuela, teléfono `+58…`.
-- Teléfono del pedido: `+58…` (lo usa Pancake para escribir por WhatsApp).
+## Cómo queda el pedido en Shopify (igual que los de Releasit)
+- Producto y cantidad de la oferta elegida: cada unidad al precio de lista (37.500) y, si aplica, descuento `OFERTA N UNIDADES` por la diferencia.
+- Pago: **pendiente**, forma de pago "Cash on Delivery (COD)" por el total de la oferta.
+- Envío: línea "Gratis" (0).
+- Dirección de envío y facturación, igual que Releasit:
+  - Nombre y apellido del cliente.
+  - Dirección (línea 1): la **ciudad** que eligió o escribió el cliente.
+  - Ciudad: la **oficina TEALCA** (ej. LECHERÍA).
+  - Estado: código de Shopify (A = Distrito Capital, B = Anzoátegui, G = Carabobo, …; lista en `reglas.py`).
+  - País Venezuela y teléfono `+58…`.
+- Cliente: se crea o se enlaza por su teléfono (como Releasit).
+- Sin nota.
 - Etiquetas: `COD`, `Formulario Rebajitas`.
-- Nota: "Pago al recibir. Retiro en oficina TEALCA: …".
 - Datos adicionales, con los mismos nombres que Releasit: UTM term, UTM content, UTM campaign, UTM medium, UTM source (si el cliente llegó por un anuncio), Country code, Nombre, Apellido, Teléfono (10 dígitos, sin +58), Estado (en mayúsculas), Ciudad, Oficina de TEALCA, IP address.
 - Las UTM se guardan cuando el cliente llega a la tienda, aunque luego navegue a otras páginas.
-- Canal: aparecerá el nombre de nuestra app en Shopify (antes decía "Releasit COD Form").
+- Canal: "Rebajitas COD" (antes "Releasit COD Form").
 - No se envía correo de confirmación de Shopify al cliente; se descuenta el inventario.
+- **Verificar con el primer pedido real**: que Shopify acepte la forma de pago, el cliente y el código de estado, y que el total quede exacto.
 
 ## Modo prueba y pantalla de estado
 - `MODO_PRUEBA=1`: el formulario lee el producto y precio **reales** de Shopify (si hay llaves) pero **no crea pedidos**; devuelve números `#PRUEBA-…`. La página `/prueba` usa un producto de ejemplo.

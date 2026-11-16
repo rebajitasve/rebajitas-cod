@@ -55,3 +55,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.6 — Ofertas atadas a la dirección del producto (`ao-black-maca-potencia-brutal`). Agregar `?rcod=1` a la dirección del producto muestra (solo a quien lo use) por qué no aparece el botón.
 - v0.7 — Arreglo: el tema de la tienda (Dawn) escondía el botón por verse "vacío"; ahora se fuerza a mostrarse. Franja de diagnóstico paso a paso con `?rcod=1` (arriba, con ×) y aviso si el bloque está pegado dos veces.
 - v0.8 — Ciudad como lista desplegable que depende del estado (497 ciudades), con opción "Otra ciudad (escribirla)".
+- v0.9 — El pedido en Shopify queda con el formato de Releasit: dirección = ciudad, ciudad = oficina TEALCA, código de estado, pago COD pendiente, envío "Gratis", cliente enlazado, sin nota.

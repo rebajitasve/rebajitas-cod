@@ -52,7 +52,12 @@ def test_pedido_bien_armado():
     assert atr["Teléfono"] == "4121234567" and atr["Estado"] == "CARABOBO" and atr["Oficina de TEALCA"] == "SAN DIEGO"
     assert atr["IP address"] == "1.2.3.4" and atr["UTM source"] == "Facebook_Mobile_Feed" and "UTM term" not in atr
     assert p["shippingAddress"]["phone"] == "+584121234567"
-    assert p["shippingAddress"]["address1"] == "Oficina TEALCA: SAN DIEGO"
+    assert p["shippingAddress"]["address1"] == "Valencia" and p["shippingAddress"]["city"] == "SAN DIEGO"
+    assert p["shippingAddress"]["provinceCode"] == "G" and "province" not in p["shippingAddress"]
+    assert p["transactions"][0]["gateway"] == "Cash on Delivery (COD)" and p["transactions"][0]["status"] == "PENDING"
+    assert p["transactions"][0]["amountSet"]["shopMoney"]["amount"] == "32450.00"
+    assert p["shippingLines"][0]["title"] == "Gratis" and "note" not in p
+    assert p["customer"]["toUpsert"]["phone"] == "+584121234567"
     assert "COD" in p["tags"] and p["financialStatus"] == "PENDING"
 
 
@@ -168,3 +173,8 @@ def test_ciudades_por_estado():
     assert "Catia La Mar" in reglas.CIUDADES["La Guaira"] and "Chaguaramas" in reglas.CIUDADES["Guárico"]
     c = TestClient(servidor.app)
     assert c.get("/api/producto/prueba").json()["ciudades"]["Zulia"][0]
+
+
+def test_codigos_de_estado_completos():
+    assert set(reglas.CODIGO_ESTADO) == set(reglas.ESTADOS)
+    assert reglas.CODIGO_ESTADO["Anzoátegui"] == "B"  # igual que el pedido de Releasit (LECHERÍA - B)
