@@ -17,6 +17,11 @@ ESTADOS = [
 with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _f:
     OFICINAS_TEALCA: dict[str, list[str]] = json.load(_f)
 
+# Ciudades por estado, desde ciudades_ve.json (ver su campo "fuente"). El cliente elige de la lista
+# o marca "Otra ciudad" y la escribe, así que el servidor acepta cualquier ciudad escrita.
+with open(Path(__file__).parent / "ciudades_ve.json", encoding="utf-8") as _f:
+    CIUDADES: dict[str, list[str]] = json.load(_f)["ciudades"]
+
 # Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
 

@@ -5,6 +5,7 @@ App propia para la tienda Shopify: botón "Pagar al recibir" + formulario + pedi
 ## Archivos
 - `app.py` — el servidor (entrega el formulario y crea los pedidos).
 - `reglas.py` — reglas de negocio: estados, oficinas TEALCA, ofertas, validaciones, cómo se arma el pedido.
+- `ciudades_ve.json` — ciudades de Venezuela por estado (para la lista de Ciudad). Para agregar una ciudad, editar este archivo.
 - `oficinas_tealca.json` — oficinas TEALCA por estado (para cambiarlas, editar este archivo).
 - `shopify.py` — la conexión con Shopify (leer producto, crear pedido).
 - `estaticos/formulario.js` — el botón y el formulario que ve el cliente.
@@ -53,3 +54,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.5 — Se permite la vista previa de temas de Shopify (*.shopifypreview.com) y, solo en vista previa, el bloque explica por qué no aparece el botón.
 - v0.6 — Ofertas atadas a la dirección del producto (`ao-black-maca-potencia-brutal`). Agregar `?rcod=1` a la dirección del producto muestra (solo a quien lo use) por qué no aparece el botón.
 - v0.7 — Arreglo: el tema de la tienda (Dawn) escondía el botón por verse "vacío"; ahora se fuerza a mostrarse. Franja de diagnóstico paso a paso con `?rcod=1` (arriba, con ×) y aviso si el bloque está pegado dos veces.
+- v0.8 — Ciudad como lista desplegable que depende del estado (497 ciudades), con opción "Otra ciudad (escribirla)".

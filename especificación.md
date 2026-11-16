@@ -17,6 +17,11 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - En Shopify el pedido va con el precio de 1 unidad por cada unidad y un descuento `OFERTA N UNIDADES` por la diferencia (ej. 3 × 37.500 − 47.000 = 65.500).
 - **Verificar en la primera prueba real** que el total del pedido en Shopify quede exacto.
 
+## Ciudades
+- La ciudad se elige de una lista que depende del estado (`ciudades_ve.json`, 497 ciudades). Fuente: venezuela-json de Zokeber (CC BY 4.0), corregida: Caracas en Distrito Capital, Vargas pasa a La Guaira con sus ciudades, y se agregaron San Diego, El Limón, Villa del Rosario, Ciudad Guayana, Santa Teresa del Tuy, Petare, Baruta, Chacao, El Hatillo, Juan Griego, Ureña y Pedernales.
+- Última opción: "Otra ciudad (escribirla)", que abre una casilla para escribirla. El servidor acepta cualquier ciudad escrita.
+- Al cambiar de estado, la ciudad se reinicia.
+
 ## Oficinas TEALCA
 - 131 oficinas en `oficinas_tealca.json`, tomadas del Excel de Mike (nov. 2026). La lista de oficinas aparece al elegir el estado; solo se aceptan oficinas de la lista.
 - Amazonas no tiene oficinas en la lista: ahí el cliente escribe la oficina a mano.

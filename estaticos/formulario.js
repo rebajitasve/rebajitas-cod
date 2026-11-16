@@ -81,6 +81,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 @media (max-width:360px){.grid{grid-template-columns:1fr}}
 .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .campo label{font-size:13px;font-weight:600}
+#ctrl-ciudad-otra{margin-top:2px}
 .ctrl{position:relative;display:flex;align-items:center;background:var(--field);border:1.5px solid transparent;border-radius:12px;transition:border-color .15s,background .15s,box-shadow .15s}
 .ctrl:focus-within{background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
 .ctrl input,.ctrl select{width:100%;min-width:0;height:50px;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:0 14px;outline:none;appearance:none;-webkit-appearance:none;border-radius:12px}
@@ -221,7 +222,9 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       campo("apellido", "Apellido", '<input id="apellido" autocomplete="family-name" placeholder="Hernández" maxlength="60">') +
       campo("telefono", "WhatsApp", '<span class="prefijo">' + WHATSAPP + '+58</span><input id="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="412 123 4567" maxlength="14">', "full", "Te escribiremos por aquí para confirmar tu pedido") +
       campo("estado", "Estado", '<select id="estado"><option value="">Selecciona tu estado</option>' + estados + '</select>' + CHEV, "full") +
-      campo("ciudad", "Ciudad", '<input id="ciudad" autocomplete="address-level2" placeholder="Ej: Valencia" maxlength="60">', "full") +
+      '<div class="campo full" data-campo="ciudad"><label for="ciudad">Ciudad</label><div class="ctrl" id="ctrl-ciudad"></div>' +
+      '<div class="ctrl" id="ctrl-ciudad-otra" hidden><input id="ciudad-otra" autocomplete="address-level2" placeholder="Escribe tu ciudad" maxlength="60" aria-label="Escribe tu ciudad"></div>' +
+      '<div class="ayuda" hidden></div></div>' +
       '<div class="campo full" data-campo="oficina"><label for="oficina">Oficina TEALCA para retirar</label><div class="ctrl" id="ctrl-oficina"></div><div class="ayuda" hidden></div></div>' +
       '</div></section>' +
       '<div class="resumen"><div class="fila"><span id="r-cant"></span><span id="r-sub"></span></div>' +
@@ -244,13 +247,14 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     sombra.addEventListener("keydown", function (e) { if (e.key === "Escape") cerrar(); });
 
     sombra.querySelectorAll('input[name=oferta]').forEach(function (r) { r.addEventListener("change", resumen); });
-    $("#estado").addEventListener("change", oficinas);
+    $("#estado").addEventListener("change", function () { ciudades(); oficinas(); });
     $("#telefono").addEventListener("input", function (e) {
       var n = e.target.value.replace(/\D/g, "").replace(/^58(?=\d{10})/, "").replace(/^0/, "").slice(0, 10);
       e.target.value = n.replace(/^(\d{3})(\d{0,3})(\d{0,4}).*/, function (m, a, b, c) { return [a, b, c].filter(Boolean).join(" "); });
     });
     sombra.addEventListener("input", function (e) { var c = e.target.closest(".campo"); if (c && e.target.value.trim()) marcar(c.dataset.campo, null); });
     $("form").addEventListener("submit", enviar);
+    ciudades();
     oficinas();
     resumen();
   }
@@ -258,6 +262,31 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   function campo(id, etiqueta, control, clase, ayuda) {
     return '<div class="campo ' + (clase || "") + '" data-campo="' + id + '"><label for="' + id + '">' + etiqueta + '</label><div class="ctrl">' + control + '</div>' +
       '<div class="ayuda"' + (ayuda ? ' data-normal="' + esc(ayuda) + '"' : ' hidden') + '>' + esc(ayuda || "") + '</div></div>';
+  }
+
+  var OTRA = "__otra__";
+  function ciudades() {
+    var estado = sombra.querySelector("#estado").value;
+    var lista = (datos.ciudades || {})[estado] || [];
+    var ctrl = sombra.querySelector("#ctrl-ciudad");
+    if (!estado) {
+      ctrl.innerHTML = '<select id="ciudad" disabled><option value="">Primero elige tu estado</option></select>' + CHEV;
+    } else {
+      ctrl.innerHTML = '<select id="ciudad"><option value="">Selecciona tu ciudad</option>' +
+        lista.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") +
+        '<option value="' + OTRA + '">Otra ciudad (escribirla)</option></select>' + CHEV;
+      sombra.querySelector("#ciudad").addEventListener("change", function (e) {
+        var otra = e.target.value === OTRA;
+        sombra.querySelector("#ctrl-ciudad-otra").hidden = !otra;
+        if (otra) sombra.querySelector("#ciudad-otra").focus();
+      });
+    }
+    sombra.querySelector("#ctrl-ciudad-otra").hidden = true;
+    sombra.querySelector("#ciudad-otra").value = "";
+  }
+  function ciudadElegida() {
+    var v = sombra.querySelector("#ciudad").value;
+    return v === OTRA ? sombra.querySelector("#ciudad-otra").value : v;
   }
 
   function oficinas() {
@@ -299,14 +328,14 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var $ = function (s) { return sombra.querySelector(s); };
     var valores = {
       nombre: $("#nombre").value, apellido: $("#apellido").value, telefono: $("#telefono").value,
-      estado: $("#estado").value, ciudad: $("#ciudad").value, oficina: $("#oficina").value
+      estado: $("#estado").value, ciudad: ciudadElegida(), oficina: $("#oficina").value
     };
     var errores = {};
     if (!valores.nombre.trim()) errores.nombre = "Escribe tu nombre";
     if (!valores.apellido.trim()) errores.apellido = "Escribe tu apellido";
     if (!/^4(12|14|16|22|24|26)\d{7}$/.test(valores.telefono.replace(/\D/g, ""))) errores.telefono = "Revisa el número: debe ser un celular venezolano, ej. 412 123 4567";
     if (!valores.estado) errores.estado = "Selecciona tu estado";
-    if (!valores.ciudad.trim()) errores.ciudad = "Escribe tu ciudad";
+    if (!valores.ciudad.trim()) errores.ciudad = $("#ciudad").value === OTRA ? "Escribe tu ciudad" : "Selecciona tu ciudad";
     if (!valores.oficina.trim()) errores.oficina = "Elige la oficina donde vas a retirar";
     if (mostrarErrores(errores)) return;
 

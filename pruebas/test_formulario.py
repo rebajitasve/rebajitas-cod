@@ -159,3 +159,12 @@ def test_vista_previa_de_shopify_permitida():
     assert r.headers.get("access-control-allow-origin") == "https://abc123xyz.shopifypreview.com"
     r = c.get("/api/producto/prueba", headers={"Origin": "https://otra-tienda.com"})
     assert "access-control-allow-origin" not in r.headers
+
+
+def test_ciudades_por_estado():
+    assert set(reglas.CIUDADES) == set(reglas.ESTADOS)
+    assert all(reglas.CIUDADES[e] for e in reglas.ESTADOS)
+    assert "Valencia" in reglas.CIUDADES["Carabobo"] and "Caracas" in reglas.CIUDADES["Distrito Capital"]
+    assert "Catia La Mar" in reglas.CIUDADES["La Guaira"] and "Chaguaramas" in reglas.CIUDADES["Guárico"]
+    c = TestClient(servidor.app)
+    assert c.get("/api/producto/prueba").json()["ciudades"]["Zulia"][0]
