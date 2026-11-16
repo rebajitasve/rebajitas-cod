@@ -280,7 +280,8 @@ def test_sheets_cedula_y_verificacion(monkeypatch):
         (httpx.Response(200, json={"ok": True, "hoja": "h", "existe": False}), False, "NO existe"),
         (httpx.Response(200, json={"ok": False, "error": "clave incorrecta"}), False, "clave no coincide"),
         (httpx.Response(200, text="<html>Sign in - Google Accounts accounts.google.com</html>"), False, "Cualquier persona"),
-        (httpx.Response(200, text="<html>TypeError: Cannot read properties of undefined</html>"), False, "desactualizado"),
+        (httpx.Response(200, text="<html>TypeError: Cannot read properties of undefined</html>"), False, "TypeError"),
+        (httpx.Response(404, text="<html><title>Error 404 (Not Found)</title><script>Error(String(a))</script></html>"), False, "Not Found"),
     ]
     for respuesta, ok, texto in casos:
         cliente = httpx.Client(transport=httpx.MockTransport(lambda r, x=respuesta: x))
