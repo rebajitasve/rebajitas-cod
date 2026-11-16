@@ -39,7 +39,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
   - País Venezuela y teléfono `+58…`.
 - Cliente: se crea o se enlaza por su teléfono (como Releasit).
 - Sin nota.
-- Etiquetas: `COD`, `Formulario Rebajitas`.
+- Etiquetas: `COD`, `Formulario Rebajitas` (la etiqueta `releasit_cod_form` no la usa nadie, confirmado por Mike).
 - Datos adicionales, con los mismos nombres que Releasit: UTM term, UTM content, UTM campaign, UTM medium, UTM source (si el cliente llegó por un anuncio), Country code, Nombre, Apellido, Teléfono (10 dígitos, sin +58), Estado (en mayúsculas), Ciudad, Oficina de TEALCA, IP address.
 - Las UTM se guardan cuando el cliente llega a la tienda, aunque luego navegue a otras páginas.
 - Canal: "Rebajitas COD" (antes "Releasit COD Form").
@@ -75,6 +75,10 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 | 3 | Bloqueo de teléfonos e IP | Pendiente (necesita base de datos) |
 | 4 | Píxel de Meta (navegador + servidor) | Pendiente |
 | 5 | Google Sheets directo | Solo si hace falta (hoy lo llena Releasit) |
+
+## Google Sheets (pendiente)
+- Hoja "Rebajitas", pestaña del mes con nombre exacto **"Tealca Noviembre COD"** (una pestaña nueva cada mes).
+- Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
 
 ## Datos pendientes de Mike
 - ¿El precio de AO Black Maca en Shopify (Bs.S. 32.450) debe pasar a 37.500? El formulario usa 37.500 de todas formas.
