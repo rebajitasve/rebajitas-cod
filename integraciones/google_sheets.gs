@@ -5,13 +5,23 @@
  * con las mismas columnas que usaba Releasit. Solo escribe A–H, P (cédula) y T–W: las columnas del equipo no se tocan.
  */
 const CLAVE = 'PEGA_AQUI_LA_CLAVE';  // la misma que SHEETS_CLAVE en Render
+// Identificador de la hoja: lo que va entre /d/ y /edit en la dirección de la hoja.
+// Así el código siempre encuentra la hoja, aunque no se haya abierto desde Extensiones → Apps Script.
+const ID_HOJA = 'PEGA_AQUI_EL_ID_DE_LA_HOJA';
 
 function doPost(e) {
   let datos;
+  if (!e || !e.postData) return responder({ ok: false, error: 'sin datos' });
   try { datos = JSON.parse(e.postData.contents); } catch (err) { return responder({ ok: false, error: 'datos no válidos' }); }
   if (datos.clave !== CLAVE) return responder({ ok: false, error: 'clave incorrecta' });
 
-  const libro = SpreadsheetApp.getActiveSpreadsheet();
+  let libro = null;
+  try {
+    libro = ID_HOJA && ID_HOJA.indexOf('PEGA_AQUI') !== 0 ? SpreadsheetApp.openById(ID_HOJA) : SpreadsheetApp.getActiveSpreadsheet();
+  } catch (err) {
+    return responder({ ok: false, error: 'no puedo abrir la hoja con ese ID_HOJA (' + err.message + ')' });
+  }
+  if (!libro) return responder({ ok: false, error: 'no encuentro la hoja: escribe ID_HOJA en el código' });
   if (datos.prueba) {
     // Verificación desde la app: no escribe nada, solo dice si la pestaña del mes existe.
     return responder({ ok: true, hoja: datos.hoja, existe: !!libro.getSheetByName(datos.hoja) });

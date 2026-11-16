@@ -93,8 +93,12 @@ def verificar(cliente=None) -> tuple[bool, str]:
         if "accounts.google.com" in texto or "ServiceLogin" in texto or "Iniciar sesión" in texto or "Sign in" in texto:
             return False, ("Google pide iniciar sesión: en Apps Script → Implementar → Gestionar implementaciones, "
                            "'Quién tiene acceso' debe ser 'Cualquier persona'")
-        if "Cannot read" in texto or "TypeError" in texto:
-            return False, "el código de la hoja está desactualizado: pega la versión nueva y crea una nueva versión de la implementación"
+        if "Cannot read" in texto or "TypeError" in texto or "Error" in texto:
+            import re
+            m = re.search(r"((?:TypeError|ReferenceError|Exception|Error)[^<]{0,160})", texto)
+            detalle = f" (Google dice: {m.group(1).strip()})" if m else ""
+            return False, ("el código de la hoja falló o está desactualizado: pega la versión nueva y en Gestionar "
+                           "implementaciones crea una «Nueva versión»" + detalle)
         return False, f"la dirección no devolvió una respuesta de la hoja (código {r.status_code}). Revisa SHEETS_URL"
     if j.get("ok") and j.get("existe", True):
         return True, f"conectado (pestaña de este mes: «{hoja}»)"
