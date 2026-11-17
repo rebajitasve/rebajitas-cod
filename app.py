@@ -110,7 +110,10 @@ def producto(variante: str):
         "ofertas": [{"cantidad": o["cantidad"], "precio": _numero(o["precio"]), "antes": _numero(o["antes"]),
                      "etiqueta": o["etiqueta"]} for o in ofertas],
         "estados": reglas.ESTADOS,
-        "oficinas": reglas.OFICINAS_TEALCA,
+        # Oficinas para el formulario: número (DroPanas), estado, ciudad, nombre para el cliente, dirección y horario.
+        "oficinas": [{"id": o["id"], "e": o["estado"], "c": o["ciudad"], "n": o["nombre"], "d": o["direccion"], "h": o["horario"]}
+                     for o in reglas.OFICINAS],
+        "tipos_cedula": reglas.TIPOS_CEDULA,
         "ciudades": reglas.CIUDADES,
         "domicilio": reglas.ENTREGA_DOMICILIO,
         "whatsapp": reglas.WHATSAPP_CONFIRMACION,

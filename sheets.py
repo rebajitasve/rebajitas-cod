@@ -31,7 +31,7 @@ def armar_fila(datos: dict, producto: str, oferta: dict, utm: dict, ahora: datet
         "nombre": f"{datos['nombre']} {datos['apellido']}",
         "telefono": datos["telefono"],
         "estado": datos["estado"].upper(),
-        "oficina": f"DOMICILIO: {datos['direccion']}" if datos.get("domicilio") else datos["oficina"],
+        "oficina": f"DOMICILIO: {datos['direccion']}" if datos.get("domicilio") else datos["oficina"]["nombre"],
         "producto": producto,
         "cantidad": oferta["cantidad"],
         "cedula": datos.get("cedula") or "",

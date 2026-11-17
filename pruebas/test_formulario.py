@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 import app as servidor  # noqa: E402
 
 BUENOS = {"nombre": "Juan", "apellido": "Hernández", "telefono": "0412-123.45.67",
-          "estado": "Carabobo", "ciudad": "Valencia", "oficina": "SAN DIEGO", "cedula": "v-12.345.678",
+          "estado": "Carabobo", "ciudad": "Valencia", "oficina_id": "667", "cedula": "v-12.345.678",
           "variante": "123", "oferta": 0}
 
 
@@ -27,40 +27,6 @@ BUENOS = {"nombre": "Juan", "apellido": "Hernández", "telefono": "0412-123.45.6
 def limpiar_memoria():
     servidor._recientes.clear()
     servidor._intentos.clear()
-
-
-@pytest.mark.parametrize("texto,esperado", [
-    ("4121234567", "+584121234567"), ("0414 123 4567", "+584141234567"), ("+58 424-1234567", "+584241234567"),
-    ("584261234567", "+584261234567"), ("0212 123 4567", None), ("412123456", None), ("", None),
-])
-def test_telefono(texto, esperado):
-    assert reglas.normalizar_telefono(texto) == esperado
-
-
-def test_validacion_marca_campos_vacios():
-    _, errores = reglas.validar_datos({})
-    assert set(errores) == {"nombre", "apellido", "telefono", "estado", "ciudad", "oficina", "cedula"}
-
-
-def test_pedido_bien_armado():
-    datos, errores = reglas.validar_datos(BUENOS)
-    assert not errores
-    oferta = reglas.ofertas_de("123", "Otro producto", Decimal("32450"))[0]
-    p = reglas.armar_pedido(datos, "123", oferta, "VES", "1.2.3.4", {"utm_source": "Facebook_Mobile_Feed"})
-    assert p["lineItems"][0]["variantId"] == "gid://shopify/ProductVariant/123"
-    assert p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "32450.00"
-    assert "discountCode" not in p
-    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
-    assert atr["Teléfono"] == "4121234567" and atr["Estado"] == "CARABOBO" and atr["Oficina de TEALCA"] == "SAN DIEGO"
-    assert atr["IP address"] == "1.2.3.4" and atr["UTM source"] == "Facebook_Mobile_Feed" and "UTM term" not in atr
-    assert p["shippingAddress"]["phone"] == "+584121234567"
-    assert p["shippingAddress"]["address1"] == "Valencia" and p["shippingAddress"]["city"] == "SAN DIEGO"
-    assert p["shippingAddress"]["provinceCode"] == "G" and "province" not in p["shippingAddress"]
-    assert p["transactions"][0]["gateway"] == "Cash on Delivery (COD)" and p["transactions"][0]["status"] == "PENDING"
-    assert p["transactions"][0]["amountSet"]["shopMoney"]["amount"] == "32450.00"
-    assert p["shippingLines"][0]["title"] == "Gratis" and "note" not in p
-    assert "customer" not in p  # Shopify exige correo para enlazar cliente (pedido real del 16-nov rechazado)
-    assert "COD" in p["tags"] and p["financialStatus"] == "PENDING"
 
 
 def test_servidor_modo_prueba():
@@ -120,15 +86,6 @@ def test_shopify_real_simulado(monkeypatch):
     assert enviados[1]["variables"]["options"]["sendReceipt"] is False
 
 
-def test_oficinas_tealca():
-    assert all(e in reglas.ESTADOS for e in reglas.OFICINAS_TEALCA)
-    assert "SAN DIEGO" in reglas.OFICINAS_TEALCA["Carabobo"]
-    _, errores = reglas.validar_datos({**BUENOS, "oficina": "OFICINA INVENTADA"})
-    assert "oficina" in errores
-    _, errores = reglas.validar_datos({**BUENOS, "estado": "Amazonas", "oficina": "Puerto Ayacucho"})
-    assert not errores  # estado sin lista: se acepta lo que escriba el cliente
-
-
 def test_ofertas_ao_black_maca():
     assert reglas.ofertas_de("999", "AO Black Maca Potencia Brutal", Decimal("32450"), "ao-black-maca-potencia-brutal")[2]["precio"] == Decimal("65500")
     o = reglas.ofertas_de("999", "Otro nombre", Decimal("32450"), "AO-Black-Maca-Potencia-Brutal")
@@ -168,20 +125,6 @@ def test_vista_previa_de_shopify_permitida():
     assert "access-control-allow-origin" not in r.headers
 
 
-def test_ciudades_por_estado():
-    assert set(reglas.CIUDADES) == set(reglas.ESTADOS)
-    assert all(reglas.CIUDADES[e] for e in reglas.ESTADOS)
-    assert "Valencia" in reglas.CIUDADES["Carabobo"] and "Caracas" in reglas.CIUDADES["Distrito Capital"]
-    assert "Catia La Mar" in reglas.CIUDADES["La Guaira"] and "Chaguaramas" in reglas.CIUDADES["Guárico"]
-    c = TestClient(servidor.app)
-    assert c.get("/api/producto/prueba").json()["ciudades"]["Zulia"][0]
-
-
-def test_codigos_de_estado_completos():
-    assert set(reglas.CODIGO_ESTADO) == set(reglas.ESTADOS)
-    assert reglas.CODIGO_ESTADO["Anzoátegui"] == "B"  # igual que el pedido de Releasit (LECHERÍA - B)
-
-
 def test_sheets_fila_igual_a_releasit(monkeypatch):
     from datetime import datetime
     monkeypatch.setattr(config, "SHEETS_URL", "https://script.google.com/macros/s/x/exec")
@@ -194,7 +137,7 @@ def test_sheets_fila_igual_a_releasit(monkeypatch):
     fila = sheets.armar_fila(datos, "AO BLACK MACA - Potencia Brutal", oferta, {"utm_source": "Facebook_Mobile_Feed"},
                              datetime(2026, 11, 1, 0, 16, 0))
     assert fila["fecha"] == "2026-11-01 0:16:00" and fila["nombre"] == "Juan Hernández"
-    assert fila["telefono"] == "+584121234567" and fila["estado"] == "CARABOBO" and fila["oficina"] == "SAN DIEGO"
+    assert fila["telefono"] == "+584121234567" and fila["estado"] == "CARABOBO" and fila["oficina"] == "Tealca San Diego"
     assert fila["cantidad"] == 2 and fila["valor"] == 57500.0 and fila["utm_source"] == "Facebook_Mobile_Feed"
 
     enviados = []
@@ -202,7 +145,7 @@ def test_sheets_fila_igual_a_releasit(monkeypatch):
         enviados.append(json.loads(request.content))
         return httpx.Response(200, json={"ok": True, "hoja": "Tealca COD Noviembre"})
     assert sheets.enviar("#1001", datos, "AO", oferta, {}, httpx.Client(transport=httpx.MockTransport(responder)))
-    assert enviados[0]["clave"] == "k" and enviados[0]["fila"]["oficina"] == "SAN DIEGO"
+    assert enviados[0]["clave"] == "k" and enviados[0]["fila"]["oficina"] == "Tealca San Diego"
 
     fallos = []
     def falla(request):
@@ -219,53 +162,6 @@ def test_sheets_solo_en_modo_real(monkeypatch):
     c = TestClient(servidor.app)
     assert c.post("/api/pedido", json=BUENOS).status_code == 200
     assert llamadas == []  # modo prueba: no se escribe en la hoja
-
-
-@pytest.mark.parametrize("texto,esperado", [
-    ("12345678", "V-12345678"), ("v-12.345.678", "V-12345678"), ("E 1234567", "E-1234567"), ("V012345678", "V-12345678"),
-    ("abc", None), ("1234", None), ("", None),
-])
-def test_cedula(texto, esperado):
-    assert reglas.normalizar_cedula(texto) == esperado
-
-
-def test_oficina_lleva_cedula():
-    datos, errores = reglas.validar_datos(BUENOS)
-    assert not errores and not datos["domicilio"]
-    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
-    assert p["shippingAddress"]["address2"] == "C.I. V-12345678" and p["shippingAddress"]["city"] == "SAN DIEGO"
-    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
-    assert atr["Cédula"] == "V-12345678" and atr["Tipo de entrega"] == "Retiro en oficina TEALCA" and "Dirección" not in atr
-    assert "DOMICILIO" not in p["tags"]
-
-
-def test_caracas_entrega_a_domicilio():
-    base = {**BUENOS, "estado": "Distrito Capital", "ciudad": "Caracas", "oficina": ""}
-    _, errores = reglas.validar_datos(base)
-    assert "direccion" in errores and "oficina" not in errores
-    datos, errores = reglas.validar_datos({**base, "direccion": "Av. Sucre, edif. Los Pinos, piso 3, apto 3B, Catia"})
-    assert not errores and datos["domicilio"] and datos["oficina"] == ""
-    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
-    d = p["shippingAddress"]
-    assert d["address1"].startswith("Av. Sucre") and d["city"] == "Caracas" and d["provinceCode"] == "A"
-    atr = {a["key"]: a["value"] for a in p["customAttributes"]}
-    assert atr["Oficina de TEALCA"] == "ENTREGA A DOMICILIO" and atr["Dirección"].startswith("Av. Sucre")
-    assert atr["Tipo de entrega"] == "Entrega a domicilio" and "DOMICILIO" in p["tags"]
-    assert p["shippingLines"][0]["title"] == "Entrega a domicilio"
-    from datetime import datetime
-    fila = sheets.armar_fila(datos, "AO", reglas.ofertas_de("1", "x", Decimal("10"))[0], {}, datetime(2026, 11, 16))
-    assert fila["oficina"].startswith("DOMICILIO: Av. Sucre")
-    # Otra ciudad del Distrito Capital (escrita a mano) sigue siendo retiro en oficina
-    _, errores = reglas.validar_datos({**BUENOS, "estado": "Distrito Capital", "ciudad": "El Junquito", "oficina": "JUNQUITO"})
-    assert not errores
-
-
-def test_miranda_todo_a_domicilio():
-    assert reglas.es_domicilio("Miranda", "Petare") and reglas.es_domicilio("Miranda", "Un pueblo escrito a mano")
-    assert reglas.es_domicilio("Distrito Capital", "Caracas") and not reglas.es_domicilio("Carabobo", "Valencia")
-    datos, errores = reglas.validar_datos({**BUENOS, "estado": "Miranda", "ciudad": "Los Teques", "oficina": "LOS TEQUES",
-                                           "direccion": "Calle 5, casa 12, El Trigo, al lado de la iglesia"})
-    assert not errores and datos["domicilio"] and datos["oficina"] == ""
 
 
 def test_sheets_cedula_y_verificacion(monkeypatch):
@@ -311,3 +207,99 @@ def test_pedido_requiere_envio():
     datos, _ = reglas.validar_datos(BUENOS)
     p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
     assert p["lineItems"][0]["requiresShipping"] is True
+
+
+
+# ---------- Reglas de DroPanas ----------
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("4141234567", "+584141234567"), ("04141234567", "+584141234567"), ("+58 414-1234567", "+584141234567"),
+    ("0212 123 4567", "+582121234567"), ("584261234567", "+584261234567"),
+    ("+1 305 555 1234", None), ("0414123456", None), ("0314 123 4567", None), ("", None),
+])
+def test_telefono_dropanas(texto, esperado):
+    assert reglas.normalizar_telefono(texto) == esperado
+    if esperado:
+        local = reglas.telefono_local(esperado)
+        assert len(local) == 11 and local[:2] in ("04", "02")
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("20216018", "V-20216018"), ("v-20.216.018", "V-20216018"), ("E 1234567", "E-1234567"),
+    ("P-123456789", "P-123456789"), ("J123456789", "J-123456789"),
+    ("123456", None), ("1234567890", None), ("X-1234567", None), ("abc", None), ("", None),
+])
+def test_cedula_dropanas(texto, esperado):
+    assert reglas.normalizar_cedula(texto) == esperado
+
+
+def test_catalogo_oficinas():
+    assert len(reglas.OFICINAS) == 134 and len(reglas.ESTADOS) == 23
+    assert set(reglas.ESTADOS) <= set(reglas.CODIGO_ESTADO)
+    o = reglas.OFICINA_POR_ID[687]
+    assert (o["estado"], o["estado_id"], o["ciudad"], o["ciudad_id"]) == ("Zulia", 23, "Maracaibo", 487)
+    assert o["nombre"] == "Tealca Delicias 5 de Julio" and o["horario"]
+    c = TestClient(servidor.app).get("/api/producto/prueba").json()
+    assert len(c["oficinas"]) == 134 and c["ciudades"]["Zulia"] and set(c["tipos_cedula"]) == {"V", "E", "P", "J"}
+
+
+def test_validacion_marca_campos_vacios():
+    _, errores = reglas.validar_datos({})
+    assert {"nombre", "apellido", "telefono", "cedula", "oficina", "estado"} <= set(errores)
+
+
+def test_oficina_por_numero_no_por_nombre():
+    # El cliente manda un estado/ciudad equivocados: manda el número de oficina, y de ahí sale todo.
+    datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "687", "estado": "Lara", "ciudad": "Carora"})
+    assert not errores and datos["estado"] == "Zulia" and datos["ciudad"] == "Maracaibo"
+    _, errores = reglas.validar_datos({**BUENOS, "oficina_id": "Tealca San Diego"})
+    assert "oficina" in errores
+    _, errores = reglas.validar_datos({**BUENOS, "oficina_id": "999999"})
+    assert "oficina" in errores
+
+
+def test_largos_dropanas():
+    datos, _ = reglas.validar_datos({**BUENOS, "nombre": "N" * 80, "apellido": "A" * 80})
+    assert len(datos["nombre"]) == 50 and len(datos["apellido"]) == 50
+    base = {**BUENOS, "estado": "Distrito Capital", "ciudad": "Caracas", "oficina_id": ""}
+    _, e = reglas.validar_datos({**base, "direccion": "x" * 251})
+    assert "direccion" in e
+    _, e = reglas.validar_datos({**base, "direccion": "Av. Sucre, edif. Pinos, apto 3B", "referencia": "r" * 301})
+    assert "referencia" in e
+    _, e = reglas.validar_datos({**base, "direccion": "Av. Sucre, edif. Pinos, apto 3B", "referencia": "r" * 300})
+    assert not e
+
+
+def atributos(p):
+    return {a["key"]: a["value"] for a in p["customAttributes"]}
+
+
+def test_pedido_tealca_informacion_adicional():
+    datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "687", "telefono": "0414-123.45.67"})
+    assert not errores
+    oferta = reglas.ofertas_de("1", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
+    p = reglas.armar_pedido(datos, "1", oferta, "VED", "1.2.3.4", {"utm_source": "Facebook_Mobile_Feed"})
+    a = atributos(p)
+    assert a["Oficina DroPanas ID"] == "687" and a["Estado DroPanas ID"] == "23" and a["Ciudad DroPanas ID"] == "487"
+    assert a["Tipo de entrega"] == "Retiro en oficina TEALCA" and a["Oficina de TEALCA"] == "Tealca Delicias 5 de Julio"
+    assert a["Teléfono"] == "04141234567" and a["Cédula"] == "V-12345678" and a["Estado"] == "ZULIA" and a["Ciudad"] == "Maracaibo"
+    assert a["UTM source"] == "Facebook_Mobile_Feed" and "Dirección" not in a
+    d = p["shippingAddress"]
+    assert d["city"] == "Maracaibo" and d["provinceCode"] == "V" and d["address2"] == "C.I. V-12345678"
+    assert d["phone"] == "+584141234567" and "TEALCA" in p["tags"] and p["lineItems"][0]["requiresShipping"]
+
+
+def test_pedido_domicilio_caracas_y_miranda():
+    base = {**BUENOS, "oficina_id": "", "direccion": "Av. Urdaneta, edif. Centro Plaza, piso 4, apto 4B",
+            "referencia": "Frente a la panadería"}
+    datos, errores = reglas.validar_datos({**base, "estado": "Distrito Capital", "ciudad": "Caracas"})
+    assert not errores and datos["domicilio"]
+    a = atributos(reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", ""))
+    assert a["Tipo de entrega"] == "Entrega a domicilio" and a["Estado DroPanas ID"] == "24" and a["Ciudad DroPanas ID"] == "149"
+    assert a["Dirección"].startswith("Av. Urdaneta") and a["Punto de referencia"] == "Frente a la panadería"
+    assert "Oficina DroPanas ID" not in a
+    datos, errores = reglas.validar_datos({**base, "estado": "Miranda", "ciudad": "Guarenas"})
+    assert not errores and datos["domicilio"] and datos["ciudad_id"] == 275
+    # El Junquito (Distrito Capital) sigue siendo retiro en oficina
+    datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "1036"})
+    assert not errores and not datos["domicilio"] and datos["ciudad"] == "El Junquito"

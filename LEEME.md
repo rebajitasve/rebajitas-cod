@@ -5,8 +5,7 @@ App propia para la tienda Shopify: botón "Pagar al recibir" + formulario + pedi
 ## Archivos
 - `app.py` — el servidor (entrega el formulario y crea los pedidos).
 - `reglas.py` — reglas de negocio: estados, oficinas TEALCA, ofertas, validaciones, cómo se arma el pedido.
-- `ciudades_ve.json` — ciudades de Venezuela por estado (para la lista de Ciudad). Para agregar una ciudad, editar este archivo.
-- `oficinas_tealca.json` — oficinas TEALCA por estado (para cambiarlas, editar este archivo).
+- `oficinas_tealca.csv` — catálogo oficial de oficinas TEALCA de DroPanas. De aquí salen los estados, ciudades y oficinas del formulario.
 - `sheets.py` — envía cada pedido nuevo a Google Sheets.
 - `integraciones/google_sheets.gs` — código que se pega en la hoja de Google (Apps Script).
 - `shopify.py` — la conexión con Shopify (leer producto, crear pedido).
@@ -45,6 +44,14 @@ Ver `.env.example`. Nunca se sube a GitHub.
 - `SHOPIFY_TOKEN` o bien `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` — llaves de la app en Shopify (permisos: write_orders, read_products, read_customers, write_customers).
 - `TIENDA_ORIGENES` — direcciones de la tienda autorizadas a enviar el formulario.
 
+## Actualizar las oficinas TEALCA (cuando Tealca abre o cierra oficinas)
+El archivo `oficinas_tealca.csv` es el catálogo oficial de DroPanas (`GET /oficinas?carrier=tealca`).
+1. Pídele al agente de DroPanas el archivo nuevo, con **las mismas columnas**:
+   `Oficina DroPanas ID, Estado, Estado DroPanas ID, Ciudad, Ciudad DroPanas ID, Nombre en DroPanas, Nombre para el cliente, Código Tealca, Dirección, Horario, Teléfono, Latitud, Longitud, Campo en la orden`.
+2. En GitHub, abre el repositorio `rebajitas-cod` → archivo `oficinas_tealca.csv` → botón de los tres puntos → **Upload / Replace file** (o arrastra el archivo nuevo con el mismo nombre) → **Commit changes**.
+3. Render publica solo en 1–2 minutos. Revisa el formulario: los estados, ciudades y oficinas salen del archivo nuevo.
+- No hay que tocar nada más. El formulario nunca busca oficinas por nombre: siempre por su número (Oficina DroPanas ID).
+
 ## Google Sheets
 1. En la hoja "Rebajitas": **Extensiones → Apps Script**. Borrar lo que haya y pegar `integraciones/google_sheets.gs`, cambiando `PEGA_AQUI_LA_CLAVE` por una clave.
 2. **Implementar → Nueva implementación → Tipo: Aplicación web**. Ejecutar como: **Yo**. Quién tiene acceso: **Cualquier persona**. Autorizar con la cuenta de Google.
@@ -82,3 +89,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.18 — Botón en todos los productos con un solo código en theme.liquid (se coloca solo bajo el botón de compra; sigue la variante elegida). La pantalla de la app muestra si faltan permisos (clientes).
 - v0.19 — Se ocultan "Add to cart", cantidad y "Comprar ya" del tema cuando nuestro botón carga bien.
 - v0.20 — Si la plantilla no tiene botón de compra, nuestro botón se pone debajo del precio (o del título). Verificado en vivo: Creatina, Shilajit y Maca.
+- v0.21 — Integración DroPanas: estados, ciudades y oficinas desde el catálogo oficial (`oficinas_tealca.csv`, 134 oficinas), oficina por número, IDs de DroPanas ocultos en el pedido, teléfono 04/02 de 11 dígitos, cédula V/E/P/J de 7–9 dígitos, dirección ≤250, punto de referencia ≤300. UTM con "+" como Releasit.

@@ -31,15 +31,17 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - Pedido a domicilio en Shopify: dirección = la del cliente, ciudad = Caracas, estado A, envío "Entrega a domicilio" (0), etiqueta `DOMICILIO`, datos adicionales "Oficina de TEALCA" = ENTREGA A DOMICILIO, "Dirección", "Tipo de entrega".
 - En Google Sheets, columna Oficina = `DOMICILIO: <dirección>`. La cédula va en la **columna P**.
 
-## Ciudades
-- La ciudad se elige de una lista que depende del estado (`ciudades_ve.json`, 497 ciudades). Fuente: venezuela-json de Zokeber (CC BY 4.0), corregida: Caracas en Distrito Capital, Vargas pasa a La Guaira con sus ciudades, y se agregaron San Diego, El Limón, Villa del Rosario, Ciudad Guayana, Santa Teresa del Tuy, Petare, Baruta, Chacao, El Hatillo, Juan Griego, Ureña y Pedernales.
-- Última opción: "Otra ciudad (escribirla)", que abre una casilla para escribirla. El servidor acepta cualquier ciudad escrita.
-- Al cambiar de estado, la ciudad se reinicia.
-
-## Oficinas TEALCA
-- 131 oficinas en `oficinas_tealca.json`, tomadas del Excel de Mike (nov. 2026). La lista de oficinas aparece al elegir el estado; solo se aceptan oficinas de la lista.
-- Amazonas no tiene oficinas en la lista: ahí el cliente escribe la oficina a mano.
-- Revisar: en Carabobo aparece "CAUCAGUA–HIGUEROTE–BARLOVENTO–TACARIGUA", que parece de Miranda.
+## Integración con DroPanas (flujo: Rebajitas Form → Shopify → Pancake → DroPanas)
+- **Catálogo único**: `oficinas_tealca.csv` (oficial de DroPanas, 134 oficinas, 23 estados, 70 ciudades). Estados, ciudades y oficinas del formulario salen solo de aquí. Ya no se usa la lista general de ciudades ni "Otra ciudad".
+- **Cascada**: Estado → Ciudad → Oficina. Se muestra el "Nombre para el cliente", la dirección y el horario de la oficina elegida.
+- **La oficina viaja por su número** (Oficina DroPanas ID) y el servidor saca de esa fila el estado y la ciudad. Nunca se busca por nombre.
+- **Entrega a domicilio**: Distrito Capital → Caracas, y todas las ciudades de Miranda del catálogo (Carrizal, Charallave, Guarenas, Guatire, Higuerote, Los Teques, San Antonio de Los Altos). Pide dirección (obligatoria, 10–250 letras) y punto de referencia (opcional, máx. 300).
+- **Solo Tealca y domicilio**: no se ofrece Zoom ni MRW (son prepago).
+- **Validaciones DroPanas**: nombre y apellido separados, máx. 50 c/u; teléfono venezolano móvil (412, 414, 416, 422, 424, 426) o fijo (2xx), se guarda con 11 dígitos empezando por 0 (ej. 04141234567); acepta 4141234567, 04141234567 o +58 414-1234567; cédula tipo V, E, P o J con 7 a 9 dígitos (ej. V-20216018).
+- **Información adicional del pedido** (Retiro en oficina): Country code, Nombre, Apellido, Teléfono (11 dígitos), Cédula, Estado, Ciudad, Tipo de entrega = "Retiro en oficina TEALCA", Oficina de TEALCA (nombre), **Oficina DroPanas ID**, **Estado DroPanas ID**, **Ciudad DroPanas ID**, IP address, y las UTM si hay.
+- **Domicilio**: igual pero Tipo de entrega = "Entrega a domicilio", Dirección, Punto de referencia (si lo hay), Estado/Ciudad DroPanas ID; sin Oficina DroPanas ID.
+- Referencia para el puente (no lo hace el formulario): Tealca → tipo_entrega "oficina", shipping_type_id 3, tipo_pago "con_recaudo", oficina_id = Oficina DroPanas ID, direccion.state_id = Estado DroPanas ID, direccion.city_id = Ciudad DroPanas ID.
+- Dirección de envío en Shopify: línea 1 = "Retiro en <oficina>" (o la dirección del cliente en domicilio, máx. 250), línea 2 = "C.I. V-…", ciudad = la ciudad, estado con su código de Shopify. Etiqueta `TEALCA` o `DOMICILIO`.
 
 ## Cómo queda el pedido en Shopify (igual que los de Releasit)
 - Producto y cantidad de la oferta elegida: cada unidad al precio de lista (37.500) y, si aplica, descuento `OFERTA N UNIDADES` por la diferencia.

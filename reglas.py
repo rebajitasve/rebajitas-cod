@@ -1,26 +1,45 @@
 """Reglas de negocio del formulario. Todo lo que decide precios, validaciones y cómo se arma el pedido vive aquí."""
-import json
+import csv
 import re
 import unicodedata
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
-ESTADOS = [
-    "Amazonas", "Anzoátegui", "Apure", "Aragua", "Barinas", "Bolívar", "Carabobo", "Cojedes",
-    "Delta Amacuro", "Distrito Capital", "Falcón", "Guárico", "La Guaira", "Lara", "Mérida",
-    "Miranda", "Monagas", "Nueva Esparta", "Portuguesa", "Sucre", "Táchira", "Trujillo",
-    "Yaracuy", "Zulia",
-]
+# ---- Oficinas TEALCA (catálogo oficial de DroPanas) ----
+# Archivo único: oficinas_tealca.csv (exportado de DroPanas GET /oficinas?carrier=tealca).
+# Para actualizarlo, se reemplaza ese archivo por uno nuevo con las MISMAS columnas (ver LEEME.md).
+# Estados, ciudades y oficinas del formulario salen de aquí, y las oficinas se buscan SIEMPRE por su número.
+ARCHIVO_OFICINAS = Path(__file__).parent / "oficinas_tealca.csv"
 
-# Oficinas TEALCA por estado, desde oficinas_tealca.json (lista de Mike, nov. 2026).
-# Si un estado no tiene oficinas en la lista, el cliente escribe la oficina a mano.
-with open(Path(__file__).parent / "oficinas_tealca.json", encoding="utf-8") as _f:
-    OFICINAS_TEALCA: dict[str, list[str]] = json.load(_f)
 
-# Ciudades por estado, desde ciudades_ve.json (ver su campo "fuente"). El cliente elige de la lista
-# o marca "Otra ciudad" y la escribe, así que el servidor acepta cualquier ciudad escrita.
-with open(Path(__file__).parent / "ciudades_ve.json", encoding="utf-8") as _f:
-    CIUDADES: dict[str, list[str]] = json.load(_f)["ciudades"]
+def _norm(texto: str) -> str:
+    return unicodedata.normalize("NFD", texto or "").encode("ascii", "ignore").decode().lower().strip()
+
+
+def cargar_oficinas(ruta: Path = ARCHIVO_OFICINAS) -> list[dict]:
+    with open(ruta, encoding="utf-8-sig", newline="") as f:
+        filas = [r for r in csv.DictReader(f) if (r.get("Oficina DroPanas ID") or "").strip()]
+    oficinas = []
+    for r in filas:
+        oficinas.append({
+            "id": int(r["Oficina DroPanas ID"]),
+            "estado": r["Estado"].strip(), "estado_id": int(r["Estado DroPanas ID"]),
+            "ciudad": r["Ciudad"].strip(), "ciudad_id": int(r["Ciudad DroPanas ID"]),
+            "nombre_dropanas": r["Nombre en DroPanas"].strip(),
+            "nombre": r["Nombre para el cliente"].strip(),
+            "codigo": r["Código Tealca"].strip(),
+            "direccion": r["Dirección"].strip(),
+            "horario": r["Horario"].strip(),
+        })
+    return oficinas
+
+
+OFICINAS = cargar_oficinas()
+OFICINA_POR_ID = {o["id"]: o for o in OFICINAS}
+ESTADO_ID = {o["estado"]: o["estado_id"] for o in OFICINAS}
+CIUDAD_ID = {(o["estado"], o["ciudad"]): o["ciudad_id"] for o in OFICINAS}
+ESTADOS = sorted(ESTADO_ID, key=_norm)
+CIUDADES = {e: sorted({o["ciudad"] for o in OFICINAS if o["estado"] == e}, key=_norm) for e in ESTADOS}
 
 # Código de cada estado en Shopify (ISO 3166-2:VE). Releasit lo usa así: "LECHERÍA - B" = Anzoátegui.
 CODIGO_ESTADO = {
@@ -46,19 +65,28 @@ def es_domicilio(estado: str, ciudad: str) -> bool:
 
 
 def normalizar_cedula(texto: str) -> str | None:
-    """Convierte 'v12.345.678', 'E-1234567', '12345678' (se asume V) en 'V-12345678'. None si no parece cédula."""
+    """Convierte 'v20.216.018', 'E-1234567', '20216018' (se asume V) en 'V-20216018'.
+    Tipos que acepta DroPanas: V, E, P, J; número de 7 a 9 dígitos. None si no cumple."""
     t = re.sub(r"[\s.\-]", "", (texto or "").upper())
     letra = "V"
-    if t[:1] in ("V", "E"):
+    if t[:1] in TIPOS_CEDULA:
         letra, t = t[0], t[1:]
-    t = t.lstrip("0")
-    if re.fullmatch(r"\d{5,9}", t):
+    if re.fullmatch(r"\d{7,9}", t):
         return f"{letra}-{t}"
     return None
 
 
-# Celulares venezolanos: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
+TIPOS_CEDULA = ("V", "E", "P", "J")
+
+
+# Teléfonos venezolanos (regla DroPanas): móviles 04xx o fijos 02xx, 11 dígitos con el 0.
+# Móviles: Movilnet (416, 426), Movistar (414, 424), Digitel (412, 422).
 PREFIJOS_CELULAR = ("412", "414", "416", "422", "424", "426")
+
+# Largos máximos que acepta DroPanas.
+MAX_NOMBRE = 50
+MAX_DIRECCION = 250
+MAX_REFERENCIA = 300
 
 # Ofertas por cantidad. Clave: dirección del producto (lo que va después de /products/ en la tienda),
 # o nombre del producto en Shopify (sin importar mayúsculas/acentos), o ID de la variante.
@@ -97,15 +125,21 @@ def ofertas_de(variante_id: str, titulo: str, precio_shopify: Decimal, direccion
 
 
 def normalizar_telefono(texto: str) -> str | None:
-    """Convierte '0412-123.45.67', '+58 412 1234567', etc. en '+584121234567'. None si no es celular venezolano."""
+    """Convierte '4141234567', '04141234567', '+58 414-1234567' en '+584141234567'.
+    Acepta móviles (412, 414, 416, 422, 424, 426) y fijos (2xx). None si no es un número venezolano."""
     digitos = re.sub(r"\D", "", texto or "")
     if digitos.startswith("58") and len(digitos) == 12:
         digitos = digitos[2:]
     if digitos.startswith("0") and len(digitos) == 11:
         digitos = digitos[1:]
-    if len(digitos) == 10 and digitos[:3] in PREFIJOS_CELULAR:
+    if len(digitos) == 10 and (digitos[:3] in PREFIJOS_CELULAR or digitos[0] == "2"):
         return "+58" + digitos
     return None
+
+
+def telefono_local(e164: str) -> str:
+    """'+584141234567' → '04141234567' (11 dígitos, como lo pide DroPanas)."""
+    return "0" + e164.removeprefix("+58")
 
 
 def limpiar(texto, largo=80) -> str:
@@ -113,39 +147,58 @@ def limpiar(texto, largo=80) -> str:
 
 
 def validar_datos(datos: dict) -> tuple[dict, dict]:
-    """Revisa lo que escribió el cliente. Devuelve (datos limpios, errores por campo)."""
+    """Revisa lo que escribió el cliente. Devuelve (datos limpios, errores por campo).
+    Retiro en oficina: la oficina se busca por su número (Oficina DroPanas ID) y de ella salen estado y ciudad.
+    Domicilio: estado y ciudad deben estar en el catálogo (para tener sus IDs de DroPanas)."""
     limpio = {
-        "nombre": limpiar(datos.get("nombre"), 60),
-        "apellido": limpiar(datos.get("apellido"), 60),
+        "nombre": limpiar(datos.get("nombre"), MAX_NOMBRE),
+        "apellido": limpiar(datos.get("apellido"), MAX_NOMBRE),
         "telefono": normalizar_telefono(datos.get("telefono", "")),
         "estado": limpiar(datos.get("estado"), 40),
         "ciudad": limpiar(datos.get("ciudad"), 60),
-        "oficina": limpiar(datos.get("oficina"), 120),
         "cedula": normalizar_cedula(datos.get("cedula", "")),
-        "direccion": limpiar(datos.get("direccion"), 200),
+        "direccion": limpiar(datos.get("direccion"), 1000),
+        "referencia": limpiar(datos.get("referencia"), 1000),
+        "oficina": None,
     }
+    errores = {}
+    if not limpio["nombre"]:
+        errores["nombre"] = "Escribe tu nombre"
+    if not limpio["apellido"]:
+        errores["apellido"] = "Escribe tu apellido"
+    if not limpio["telefono"]:
+        errores["telefono"] = "Revisa el número: debe ser venezolano, ej. 0414 123 4567"
+    if not limpio["cedula"]:
+        errores["cedula"] = "Revisa la cédula: de 7 a 9 números, ej. 20216018"
+
     limpio["domicilio"] = es_domicilio(limpio["estado"], limpio["ciudad"])
     if limpio["domicilio"]:
-        limpio["oficina"] = ""
+        if (limpio["estado"], limpio["ciudad"]) not in CIUDAD_ID:
+            errores["ciudad"] = "Selecciona tu ciudad"
+        if len(limpio["direccion"]) < 10:
+            errores["direccion"] = "Escribe la dirección completa: calle, edificio o casa"
+        elif len(limpio["direccion"]) > MAX_DIRECCION:
+            errores["direccion"] = f"La dirección es muy larga (máximo {MAX_DIRECCION} letras)"
+        if len(limpio["referencia"]) > MAX_REFERENCIA:
+            errores["referencia"] = f"El punto de referencia es muy largo (máximo {MAX_REFERENCIA} letras)"
     else:
-        limpio["direccion"] = ""
-    errores = {}
-    for campo, mensaje in [("nombre", "Escribe tu nombre"), ("apellido", "Escribe tu apellido"),
-                           ("ciudad", "Escribe tu ciudad")]:
-        if not limpio[campo]:
-            errores[campo] = mensaje
-    if limpio["domicilio"] and len(limpio["direccion"]) < 10:
-        errores["direccion"] = "Escribe la dirección completa: calle, edificio o casa y un punto de referencia"
-    if not limpio["domicilio"] and not limpio["oficina"]:
-        errores["oficina"] = "Elige la oficina donde vas a retirar"
-    if not limpio["cedula"]:
-        errores["cedula"] = "Revisa la cédula: solo números, ej. 12345678"
-    if not limpio["telefono"]:
-        errores["telefono"] = "Revisa el número: debe ser un celular venezolano, ej. 412 123 4567"
-    if limpio["estado"] not in ESTADOS:
-        errores["estado"] = "Selecciona tu estado"
-    elif limpio["oficina"] and OFICINAS_TEALCA.get(limpio["estado"]) and limpio["oficina"] not in OFICINAS_TEALCA[limpio["estado"]]:
-        errores["oficina"] = "Elige una oficina de la lista"
+        limpio["direccion"] = limpio["referencia"] = ""
+        try:
+            oficina = OFICINA_POR_ID.get(int(str(datos.get("oficina_id", "")).strip()))
+        except ValueError:
+            oficina = None
+        if not oficina:
+            errores["oficina"] = "Elige la oficina donde vas a retirar"
+            if limpio["estado"] not in ESTADO_ID:
+                errores["estado"] = "Selecciona tu estado"
+            elif (limpio["estado"], limpio["ciudad"]) not in CIUDAD_ID:
+                errores["ciudad"] = "Selecciona tu ciudad"
+        else:
+            limpio["oficina"] = oficina
+            limpio["estado"], limpio["ciudad"] = oficina["estado"], oficina["ciudad"]
+    if limpio["estado"] in ESTADO_ID and (limpio["estado"], limpio["ciudad"]) in CIUDAD_ID:
+        limpio["estado_id"] = ESTADO_ID[limpio["estado"]]
+        limpio["ciudad_id"] = CIUDAD_ID[(limpio["estado"], limpio["ciudad"])]
     return limpio, errores
 
 
@@ -155,18 +208,17 @@ UTM_CAMPOS = [("utm_term", "UTM term"), ("utm_content", "UTM content"), ("utm_ca
 
 def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str, utm: dict | None = None) -> dict:
     """Arma el pedido tal como se envía a Shopify (orderCreate).
-    Copia el formato de los pedidos de Releasit, para que Pancake, Sheets y Dropanas los lean igual:
-    dirección = la ciudad que eligió el cliente, ciudad = la oficina TEALCA, estado con su código de Shopify,
-    línea 2 = "C.I. V-12345678" (cédula de quien retira); en entrega a domicilio: dirección = la del cliente, ciudad = Caracas,
-    pago pendiente por "Cash on Delivery (COD)" y envío "Gratis".
-    No se enlaza un cliente: Shopify exige correo para eso y el formulario no lo pide (el pedido igual lleva nombre y teléfono)."""
+    En "Información adicional" van los datos exactos que necesita el puente Pancake → DroPanas
+    (Oficina/Estado/Ciudad DroPanas ID, teléfono de 11 dígitos, cédula V-…), además de los de Releasit.
+    Pago pendiente por "Cash on Delivery (COD)" y envío "Gratis"."""
     dinero = lambda valor: {"shopMoney": {"amount": f"{valor:.2f}", "currencyCode": moneda}}
+    of = datos["oficina"]
     direccion = {
         "firstName": datos["nombre"],
         "lastName": datos["apellido"],
-        "address1": datos["direccion"] if datos["domicilio"] else datos["ciudad"],
+        "address1": (datos["direccion"] if datos["domicilio"] else f"Retiro en {of['nombre']}")[:MAX_DIRECCION],
         "address2": f"C.I. {datos['cedula']}",
-        "city": datos["ciudad"] if datos["domicilio"] else datos["oficina"],
+        "city": datos["ciudad"],
         "provinceCode": CODIGO_ESTADO[datos["estado"]],
         "countryCode": "VE",
         "phone": datos["telefono"],
@@ -177,16 +229,24 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         {"key": "Country code", "value": "VE"},
         {"key": "Nombre", "value": datos["nombre"]},
         {"key": "Apellido", "value": datos["apellido"]},
-        {"key": "Teléfono", "value": datos["telefono"].removeprefix("+58")},
+        {"key": "Teléfono", "value": telefono_local(datos["telefono"])},
+        {"key": "Cédula", "value": datos["cedula"]},
         {"key": "Estado", "value": datos["estado"].upper()},
         {"key": "Ciudad", "value": datos["ciudad"]},
-        {"key": "Oficina de TEALCA", "value": "ENTREGA A DOMICILIO" if datos["domicilio"] else datos["oficina"]},
-        {"key": "Cédula", "value": datos["cedula"]},
         {"key": "Tipo de entrega", "value": "Entrega a domicilio" if datos["domicilio"] else "Retiro en oficina TEALCA"},
-        {"key": "IP address", "value": ip or "desconocida"},
     ]
     if datos["domicilio"]:
-        atributos.insert(len(atributos) - 1, {"key": "Dirección", "value": datos["direccion"]})
+        atributos += [{"key": "Dirección", "value": datos["direccion"]}]
+        if datos["referencia"]:
+            atributos += [{"key": "Punto de referencia", "value": datos["referencia"]}]
+    else:
+        atributos += [{"key": "Oficina de TEALCA", "value": of["nombre"]},
+                      {"key": "Oficina DroPanas ID", "value": str(of["id"])}]
+    atributos += [
+        {"key": "Estado DroPanas ID", "value": str(datos["estado_id"])},
+        {"key": "Ciudad DroPanas ID", "value": str(datos["ciudad_id"])},
+        {"key": "IP address", "value": ip or "desconocida"},
+    ]
     pedido = {
         "currency": moneda,
         "financialStatus": "PENDING",
@@ -201,7 +261,7 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         "billingAddress": direccion,
         "shippingLines": [{"title": "Entrega a domicilio" if datos["domicilio"] else "Gratis", "priceSet": dinero(0)}],
         "transactions": [{"kind": "SALE", "status": "PENDING", "gateway": PASARELA_COD, "amountSet": dinero(oferta["precio"])}],
-        "tags": ETIQUETAS_PEDIDO + (["DOMICILIO"] if datos["domicilio"] else []),
+        "tags": ETIQUETAS_PEDIDO + (["DOMICILIO"] if datos["domicilio"] else ["TEALCA"]),
         "customAttributes": atributos,
     }
     descuento = oferta["antes"] - oferta["precio"]

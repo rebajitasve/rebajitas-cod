@@ -119,7 +119,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 @media (max-width:360px){.grid{grid-template-columns:1fr}}
 .campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .campo label{font-size:13px;font-weight:600}
-#ctrl-ciudad-otra{margin-top:2px}
+.of-info{background:var(--field);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted);line-height:1.4}
+.of-info b{color:var(--ink);font-weight:600}
 .ctrl select.tipo{width:auto;flex:none;padding:0 6px 0 14px;font-weight:700;border-right:1.5px solid var(--line);border-radius:12px 0 0 12px}
 .ctrl textarea{width:100%;min-width:0;min-height:76px;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:12px 14px;outline:none;resize:vertical;border-radius:12px}
 .ctrl{position:relative;display:flex;align-items:center;background:var(--field);border:1.5px solid transparent;border-radius:12px;transition:border-color .15s,background .15s,box-shadow .15s}
@@ -161,8 +162,12 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   // UTM de la publicidad: se guardan al llegar a la tienda para enviarlas con el pedido aunque el cliente navegue.
   var UTM = (function () {
     var campos = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"], u = {}, hay = false;
-    var q = new URLSearchParams(location.search);
-    campos.forEach(function (c) { if (q.get(c)) { u[c] = q.get(c); hay = true; } });
+    // Se leen "en crudo" para conservar los "+" tal como los manda Facebook (ej. IMG+5), igual que Releasit.
+    location.search.replace(/^\?/, "").split("&").forEach(function (par) {
+      var i = par.indexOf("="), k = i < 0 ? par : par.slice(0, i), val = i < 0 ? "" : par.slice(i + 1);
+      try { val = decodeURIComponent(val); } catch (e) { /* se deja tal cual */ }
+      if (campos.indexOf(k) >= 0 && val) { u[k] = val; hay = true; }
+    });
     try {
       if (hay) sessionStorage.setItem("rebajitas_cod_utm", JSON.stringify(u));
       else u = JSON.parse(sessionStorage.getItem("rebajitas_cod_utm") || "{}");
@@ -284,19 +289,20 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<form novalidate>' +
       (d.ofertas.length > 1 ? '<section><h3 class="sec">Elige tu oferta</h3><div class="ofertas">' + ofertas + '</div></section>' : '<div hidden>' + ofertas + '</div>') +
       '<section><h3 class="sec">Datos para el envío</h3><div class="grid">' +
-      campo("nombre", "Nombre", '<input id="nombre" autocomplete="given-name" placeholder="Juan" maxlength="60">') +
-      campo("apellido", "Apellido", '<input id="apellido" autocomplete="family-name" placeholder="Hernández" maxlength="60">') +
-      campo("telefono", "WhatsApp", '<span class="prefijo">' + WHATSAPP + '+58</span><input id="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="412 123 4567" maxlength="14">', "full", "Te escribiremos por aquí para confirmar tu pedido") +
+      campo("nombre", "Nombre", '<input id="nombre" autocomplete="given-name" placeholder="Juan" maxlength="50">') +
+      campo("apellido", "Apellido", '<input id="apellido" autocomplete="family-name" placeholder="Hernández" maxlength="50">') +
+      campo("telefono", "WhatsApp", '<span class="prefijo">' + WHATSAPP + '+58</span><input id="telefono" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="414 123 4567" maxlength="20">', "full", "Te escribiremos por aquí para confirmar tu pedido") +
       campo("estado", "Estado", '<select id="estado"><option value="">Selecciona tu estado</option>' + estados + '</select>' + CHEV, "full") +
       '<div class="campo full" data-campo="ciudad"><label for="ciudad">Ciudad</label><div class="ctrl" id="ctrl-ciudad"></div>' +
-      '<div class="ctrl" id="ctrl-ciudad-otra" hidden><input id="ciudad-otra" autocomplete="address-level2" placeholder="Escribe tu ciudad" maxlength="60" aria-label="Escribe tu ciudad"></div>' +
       '<div class="ayuda" hidden></div></div>' +
-      '<div class="campo full" data-campo="oficina"><label for="oficina">Oficina TEALCA para retirar</label><div class="ctrl" id="ctrl-oficina"></div><div class="ayuda" hidden></div></div>' +
+      '<div class="campo full" data-campo="oficina"><label for="oficina">Oficina TEALCA para retirar</label><div class="ctrl" id="ctrl-oficina"></div><div class="of-info" id="of-info" hidden></div><div class="ayuda" hidden></div></div>' +
       '<div class="campo full" data-campo="direccion" hidden><label for="direccion">Dirección de entrega</label><div class="ctrl">' +
-      '<textarea id="direccion" autocomplete="street-address" maxlength="200" placeholder="Calle o avenida, edificio o casa, piso/apto y un punto de referencia"></textarea></div>' +
+      '<textarea id="direccion" autocomplete="street-address" maxlength="250" placeholder="Calle o avenida, edificio o casa, piso/apto"></textarea></div>' +
       '<div class="ayuda" data-normal="Entrega a domicilio: escribe la dirección completa">Entrega a domicilio: escribe la dirección completa</div></div>' +
+      '<div class="campo full" data-campo="referencia" hidden><label for="referencia">Punto de referencia (opcional)</label><div class="ctrl">' +
+      '<input id="referencia" maxlength="300" placeholder="Ej: frente a la panadería, portón negro"></div><div class="ayuda" hidden></div></div>' +
       '<div class="campo full" data-campo="cedula"><label for="cedula" id="l-cedula">Cédula de quien retira</label><div class="ctrl">' +
-      '<select id="cedula-tipo" class="tipo" aria-label="Tipo de cédula"><option>V</option><option>E</option></select>' +
+      '<select id="cedula-tipo" class="tipo" aria-label="Tipo de documento">' + (d.tipos_cedula || ["V", "E"]).map(function (t) { return "<option>" + esc(t) + "</option>"; }).join("") + '</select>' +
       '<input id="cedula" inputmode="numeric" placeholder="12345678" maxlength="10"></div><div class="ayuda" hidden></div></div>' +
       '</div></section>' +
       '<div class="resumen"><div class="fila"><span id="r-cant"></span><span id="r-sub"></span></div>' +
@@ -322,7 +328,10 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     $("#estado").addEventListener("change", function () { ciudades(); oficinas(); entrega(); });
     $("#cedula").addEventListener("input", function (e) { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 9); });
     $("#telefono").addEventListener("input", function (e) {
-      var n = e.target.value.replace(/\D/g, "").replace(/^58(?=\d{10})/, "").replace(/^0/, "").slice(0, 10);
+      // Acepta 4141234567, 04141234567 o +58 414-1234567 (escrito o pegado) y lo deja como "414 123 4567".
+      var n = e.target.value.replace(/\D/g, "");
+      if (/^58[24]\d{9}/.test(n)) n = n.slice(2);
+      n = n.replace(/^0/, "").slice(0, 10);
       e.target.value = n.replace(/^(\d{3})(\d{0,3})(\d{0,4}).*/, function (m, a, b, c) { return [a, b, c].filter(Boolean).join(" "); });
     });
     sombra.addEventListener("input", function (e) { var c = e.target.closest(".campo"); if (c && e.target.value.trim()) marcar(c.dataset.campo, null); });
@@ -338,31 +347,20 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       '<div class="ayuda"' + (ayuda ? ' data-normal="' + esc(ayuda) + '"' : ' hidden') + '>' + esc(ayuda || "") + '</div></div>';
   }
 
-  var OTRA = "__otra__";
+  // Cascada Estado → Ciudad → Oficina, todo desde el catálogo de oficinas de DroPanas.
   function ciudades() {
     var estado = sombra.querySelector("#estado").value;
     var lista = (datos.ciudades || {})[estado] || [];
     var ctrl = sombra.querySelector("#ctrl-ciudad");
-    if (!estado) {
-      ctrl.innerHTML = '<select id="ciudad" disabled><option value="">Primero elige tu estado</option></select>' + CHEV;
-    } else {
-      ctrl.innerHTML = '<select id="ciudad"><option value="">Selecciona tu ciudad</option>' +
-        lista.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") +
-        '<option value="' + OTRA + '">Otra ciudad (escribirla)</option></select>' + CHEV;
-      sombra.querySelector("#ciudad").addEventListener("change", function (e) {
-        var otra = e.target.value === OTRA;
-        sombra.querySelector("#ctrl-ciudad-otra").hidden = !otra;
-        if (otra) sombra.querySelector("#ciudad-otra").focus();
-        entrega();
-      });
-    }
-    sombra.querySelector("#ctrl-ciudad-otra").hidden = true;
-    sombra.querySelector("#ciudad-otra").value = "";
+    ctrl.innerHTML = !estado
+      ? '<select id="ciudad" disabled><option value="">Primero elige tu estado</option></select>' + CHEV
+      : '<select id="ciudad"><option value="">Selecciona tu ciudad</option>' +
+        lista.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + "</select>" + CHEV;
+    var sel = sombra.querySelector("#ciudad");
+    if (lista.length === 1) sel.value = lista[0];
+    sel.addEventListener("change", function () { oficinas(); entrega(); });
   }
-  function ciudadElegida() {
-    var v = sombra.querySelector("#ciudad").value;
-    return v === OTRA ? sombra.querySelector("#ciudad-otra").value : v;
-  }
+  function ciudadElegida() { return sombra.querySelector("#ciudad").value; }
   // Entrega a domicilio (ej. Caracas): se cambia la oficina por la dirección y se ajustan los textos.
   function esDomicilio() {
     var estado = sombra.querySelector("#estado").value, ciudad = sombra.querySelector("#ciudad").value;
@@ -373,6 +371,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var dom = esDomicilio(), $ = function (q) { return sombra.querySelector(q); };
     $('[data-campo="oficina"]').hidden = dom;
     $('[data-campo="direccion"]').hidden = !dom;
+    $('[data-campo="referencia"]').hidden = !dom;
     $("#l-cedula").textContent = dom ? "Cédula de quien recibe" : "Cédula de quien retira";
     $("#h-sub").textContent = dom ? "Entrega a domicilio · Pagas al recibir" : "Pagas al retirar en tu oficina TEALCA";
     $("#r-envio").textContent = dom ? "Entrega a domicilio" : "Envío a oficina TEALCA";
@@ -380,17 +379,22 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   }
 
   function oficinas() {
-    var estado = sombra.querySelector("#estado").value;
-    var lista = (datos.oficinas || {})[estado];
-    var ctrl = sombra.querySelector("#ctrl-oficina");
-    if (lista && lista.length) {
-      ctrl.innerHTML = '<select id="oficina"><option value="">Selecciona una oficina</option>' +
-        lista.map(function (o) { return "<option>" + esc(o) + "</option>"; }).join("") + "</select>" + CHEV;
-    } else if (!estado && Object.keys(datos.oficinas || {}).length) {
-      ctrl.innerHTML = '<select id="oficina" disabled><option value="">Primero elige tu estado</option></select>' + CHEV;
-    } else {
-      ctrl.innerHTML = '<input id="oficina" placeholder="Escribe la oficina TEALCA donde retiras" maxlength="120">';
+    var estado = sombra.querySelector("#estado").value, ciudad = ciudadElegida();
+    var lista = (datos.oficinas || []).filter(function (o) { return o.e === estado && o.c === ciudad; });
+    var ctrl = sombra.querySelector("#ctrl-oficina"), info = sombra.querySelector("#of-info");
+    ctrl.innerHTML = !ciudad
+      ? '<select id="oficina" disabled><option value="">Primero elige tu ciudad</option></select>' + CHEV
+      : '<select id="oficina"><option value="">Selecciona una oficina</option>' +
+        lista.map(function (o) { return '<option value="' + o.id + '">' + esc(o.n) + "</option>"; }).join("") + "</select>" + CHEV;
+    var sel = sombra.querySelector("#oficina");
+    if (lista.length === 1) sel.value = String(lista[0].id);
+    function mostrar() {
+      var o = lista.filter(function (x) { return String(x.id) === sel.value; })[0];
+      info.hidden = !o;
+      info.innerHTML = o ? "<b>" + esc(o.n) + "</b><br>" + esc(o.d) + (o.h ? "<br>Horario: " + esc(o.h) : "") : "";
     }
+    sel.addEventListener("change", mostrar);
+    mostrar();
   }
 
   function oferta() { var r = sombra.querySelector('input[name=oferta]:checked'); return datos.ofertas[r ? +r.value : 0]; }
@@ -418,20 +422,22 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var $ = function (s) { return sombra.querySelector(s); };
     var valores = {
       nombre: $("#nombre").value, apellido: $("#apellido").value, telefono: $("#telefono").value,
-      estado: $("#estado").value, ciudad: ciudadElegida(), oficina: $("#oficina").value,
-      direccion: $("#direccion").value, cedula: $("#cedula-tipo").value + "-" + $("#cedula").value
+      estado: $("#estado").value, ciudad: ciudadElegida(), oficina_id: $("#oficina").value,
+      direccion: $("#direccion").value, referencia: $("#referencia").value,
+      cedula: $("#cedula-tipo").value + "-" + $("#cedula").value
     };
     var dom = esDomicilio();
-    if (dom) valores.oficina = ""; else valores.direccion = "";
+    if (dom) valores.oficina_id = ""; else { valores.direccion = ""; valores.referencia = ""; }
+    var ofi = (datos.oficinas || []).filter(function (o) { return String(o.id) === valores.oficina_id; })[0];
     var errores = {};
     if (!valores.nombre.trim()) errores.nombre = "Escribe tu nombre";
     if (!valores.apellido.trim()) errores.apellido = "Escribe tu apellido";
-    if (!/^4(12|14|16|22|24|26)\d{7}$/.test(valores.telefono.replace(/\D/g, ""))) errores.telefono = "Revisa el número: debe ser un celular venezolano, ej. 412 123 4567";
+    if (!/^(4(12|14|16|22|24|26)|2\d\d)\d{7}$/.test(valores.telefono.replace(/\D/g, ""))) errores.telefono = "Revisa el número: debe ser venezolano, ej. 0414 123 4567";
     if (!valores.estado) errores.estado = "Selecciona tu estado";
-    if (!valores.ciudad.trim()) errores.ciudad = $("#ciudad").value === OTRA ? "Escribe tu ciudad" : "Selecciona tu ciudad";
-    if (!dom && !valores.oficina.trim()) errores.oficina = "Elige la oficina donde vas a retirar";
-    if (dom && valores.direccion.trim().length < 10) errores.direccion = "Escribe la dirección completa: calle, edificio o casa y un punto de referencia";
-    if (!/^\d{5,9}$/.test($("#cedula").value.replace(/^0+/, ""))) errores.cedula = "Revisa la cédula: solo números, ej. 12345678";
+    if (!valores.ciudad.trim()) errores.ciudad = "Selecciona tu ciudad";
+    if (!dom && !ofi) errores.oficina = "Elige la oficina donde vas a retirar";
+    if (dom && valores.direccion.trim().length < 10) errores.direccion = "Escribe la dirección completa: calle, edificio o casa";
+    if (!/^\d{7,9}$/.test($("#cedula").value)) errores.cedula = "Revisa la cédula: de 7 a 9 números, ej. 20216018";
     if (mostrarErrores(errores)) return;
 
     var cta = $(".cta"), caja = $(".error");
@@ -450,7 +456,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         var o = oferta();
         $("#l-t").textContent = "¡Listo, " + valores.nombre.trim().split(" ")[0] + "! Recibimos tu pedido";
         $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], [dom ? "Total al recibir" : "Total al retirar", dinero(o.precio, datos.moneda)],
-          ["WhatsApp", "+58 " + valores.telefono], dom ? ["Entrega", valores.direccion.trim()] : ["Retiro", "TEALCA " + valores.oficina],
+          ["WhatsApp", "+58 " + valores.telefono], dom ? ["Entrega", valores.direccion.trim()] : ["Retiro", ofi.n],
           ["Cédula", valores.cedula]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
 $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
@@ -468,7 +474,7 @@ $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
 
   function mostrarErrores(errores) {
     var primero = null;
-    ["nombre", "apellido", "telefono", "estado", "ciudad", "oficina", "direccion", "cedula"].forEach(function (id) {
+    ["nombre", "apellido", "telefono", "estado", "ciudad", "oficina", "direccion", "referencia", "cedula"].forEach(function (id) {
       marcar(id, errores[id] || null);
       if (errores[id] && !primero) primero = sombra.querySelector("#" + id);
     });
