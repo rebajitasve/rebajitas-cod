@@ -35,13 +35,15 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - **Catálogo único**: `oficinas_tealca.csv` (oficial de DroPanas, 134 oficinas, 23 estados, 70 ciudades). Estados, ciudades y oficinas del formulario salen solo de aquí. Ya no se usa la lista general de ciudades ni "Otra ciudad".
 - **Cascada**: Estado → Ciudad → Oficina. Se muestra el "Nombre para el cliente", la dirección y el horario de la oficina elegida.
 - **La oficina viaja por su número** (Oficina DroPanas ID) y el servidor saca de esa fila el estado y la ciudad. Nunca se busca por nombre.
-- **Entrega a domicilio**: Distrito Capital → Caracas, y todas las ciudades de Miranda del catálogo (Carrizal, Charallave, Guarenas, Guatire, Higuerote, Los Teques, San Antonio de Los Altos). Pide dirección (obligatoria, 10–250 letras) y punto de referencia (opcional, máx. 300).
+- **Entrega a domicilio**: Distrito Capital → Caracas, y todas las ciudades de Miranda del catálogo (Carrizal, Charallave, Guarenas, Guatire, Higuerote, Los Teques, San Antonio de Los Altos). Pide dirección (obligatoria, cualquier texto, máx. 250) y punto de referencia (opcional, máx. 300).
 - **Solo Tealca y domicilio**: no se ofrece Zoom ni MRW (son prepago).
 - **Validaciones DroPanas**: nombre y apellido separados, máx. 50 c/u; teléfono venezolano móvil (412, 414, 416, 422, 424, 426) o fijo (2xx), se guarda con 11 dígitos empezando por 0 (ej. 04141234567); acepta 4141234567, 04141234567 o +58 414-1234567; cédula tipo V, E, P o J con 7 a 9 dígitos (ej. V-20216018).
-- **Información adicional del pedido** (Retiro en oficina): Country code, Nombre, Apellido, Teléfono (11 dígitos), Cédula, Estado, Ciudad, Tipo de entrega = "Retiro en oficina TEALCA", Oficina de TEALCA (nombre), **Oficina DroPanas ID**, **Estado DroPanas ID**, **Ciudad DroPanas ID**, IP address, y las UTM si hay.
+- **Información adicional del pedido** (Retiro en oficina): Country code, Nombre, Apellido, Teléfono (11 dígitos), Cédula, Estado, Ciudad, Tipo de entrega = "Retiro en oficina TEALCA", Dirección (= dirección de la oficina), Oficina de TEALCA (nombre), **Oficina DroPanas ID**, **Estado DroPanas ID**, **Ciudad DroPanas ID**, IP address, y las UTM si hay.
 - **Domicilio**: igual pero Tipo de entrega = "Entrega a domicilio", Dirección, Punto de referencia (si lo hay), Estado/Ciudad DroPanas ID; sin Oficina DroPanas ID.
 - Referencia para el puente (no lo hace el formulario): Tealca → tipo_entrega "oficina", shipping_type_id 3, tipo_pago "con_recaudo", oficina_id = Oficina DroPanas ID, direccion.state_id = Estado DroPanas ID, direccion.city_id = Ciudad DroPanas ID.
-- Dirección de envío en Shopify: línea 1 = "Retiro en <oficina>" (o la dirección del cliente en domicilio, máx. 250), línea 2 = "C.I. V-…", ciudad = la ciudad, estado con su código de Shopify. Etiqueta `TEALCA` o `DOMICILIO`.
+- **Dirección del cliente** (decisión de Mike, 17-nov): en retiro en oficina = la dirección de la oficina Tealca; en domicilio = la que escribe el cliente (cualquier texto, obligatoria, máx. 250). Va en el dato adicional "Dirección" y en la línea 1 de la dirección de Shopify.
+- Decisiones confirmadas: Caracas solo domicilio; Miranda a domicilio solo en las 7 ciudades del catálogo; Amazonas no aparece (sin oficinas).
+- Dirección de envío en Shopify: línea 1 = la dirección del cliente (ver arriba), línea 2 = "C.I. V-…", ciudad = la ciudad, estado con su código de Shopify. Etiqueta `TEALCA` o `DOMICILIO`.
 
 ## Cómo queda el pedido en Shopify (igual que los de Releasit)
 - Producto y cantidad de la oferta elegida: cada unidad al precio de lista (37.500) y, si aplica, descuento `OFERTA N UNIDADES` por la diferencia.

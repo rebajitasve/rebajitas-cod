@@ -175,8 +175,8 @@ def validar_datos(datos: dict) -> tuple[dict, dict]:
     if limpio["domicilio"]:
         if (limpio["estado"], limpio["ciudad"]) not in CIUDAD_ID:
             errores["ciudad"] = "Selecciona tu ciudad"
-        if len(limpio["direccion"]) < 10:
-            errores["direccion"] = "Escribe la dirección completa: calle, edificio o casa"
+        if not limpio["direccion"]:
+            errores["direccion"] = "Escribe la dirección de entrega"
         elif len(limpio["direccion"]) > MAX_DIRECCION:
             errores["direccion"] = f"La dirección es muy larga (máximo {MAX_DIRECCION} letras)"
         if len(limpio["referencia"]) > MAX_REFERENCIA:
@@ -206,6 +206,11 @@ UTM_CAMPOS = [("utm_term", "UTM term"), ("utm_content", "UTM content"), ("utm_ca
               ("utm_medium", "UTM medium"), ("utm_source", "UTM source")]
 
 
+def direccion_cliente(datos: dict) -> str:
+    """Dirección del cliente para DroPanas (máx. 250): en domicilio la que escribió; en retiro, la de la oficina Tealca."""
+    return (datos["direccion"] if datos["domicilio"] else datos["oficina"]["direccion"])[:MAX_DIRECCION]
+
+
 def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str, utm: dict | None = None) -> dict:
     """Arma el pedido tal como se envía a Shopify (orderCreate).
     En "Información adicional" van los datos exactos que necesita el puente Pancake → DroPanas
@@ -216,7 +221,7 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
     direccion = {
         "firstName": datos["nombre"],
         "lastName": datos["apellido"],
-        "address1": (datos["direccion"] if datos["domicilio"] else f"Retiro en {of['nombre']}")[:MAX_DIRECCION],
+        "address1": direccion_cliente(datos),
         "address2": f"C.I. {datos['cedula']}",
         "city": datos["ciudad"],
         "provinceCode": CODIGO_ESTADO[datos["estado"]],
@@ -235,8 +240,9 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         {"key": "Ciudad", "value": datos["ciudad"]},
         {"key": "Tipo de entrega", "value": "Entrega a domicilio" if datos["domicilio"] else "Retiro en oficina TEALCA"},
     ]
+    # "Dirección" = dirección del cliente para DroPanas: la que escribió (domicilio) o la de la oficina donde retira.
+    atributos += [{"key": "Dirección", "value": direccion_cliente(datos)}]
     if datos["domicilio"]:
-        atributos += [{"key": "Dirección", "value": datos["direccion"]}]
         if datos["referencia"]:
             atributos += [{"key": "Punto de referencia", "value": datos["referencia"]}]
     else:

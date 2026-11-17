@@ -436,7 +436,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     if (!valores.estado) errores.estado = "Selecciona tu estado";
     if (!valores.ciudad.trim()) errores.ciudad = "Selecciona tu ciudad";
     if (!dom && !ofi) errores.oficina = "Elige la oficina donde vas a retirar";
-    if (dom && valores.direccion.trim().length < 10) errores.direccion = "Escribe la dirección completa: calle, edificio o casa";
+    if (dom && !valores.direccion.trim()) errores.direccion = "Escribe la dirección de entrega";
     if (!/^\d{7,9}$/.test($("#cedula").value)) errores.cedula = "Revisa la cédula: de 7 a 9 números, ej. 20216018";
     if (mostrarErrores(errores)) return;
 

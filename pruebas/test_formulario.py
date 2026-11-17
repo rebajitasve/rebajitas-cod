@@ -283,7 +283,8 @@ def test_pedido_tealca_informacion_adicional():
     assert a["Oficina DroPanas ID"] == "687" and a["Estado DroPanas ID"] == "23" and a["Ciudad DroPanas ID"] == "487"
     assert a["Tipo de entrega"] == "Retiro en oficina TEALCA" and a["Oficina de TEALCA"] == "Tealca Delicias 5 de Julio"
     assert a["Teléfono"] == "04141234567" and a["Cédula"] == "V-12345678" and a["Estado"] == "ZULIA" and a["Ciudad"] == "Maracaibo"
-    assert a["UTM source"] == "Facebook_Mobile_Feed" and "Dirección" not in a
+    assert a["UTM source"] == "Facebook_Mobile_Feed"
+    assert a["Dirección"] == reglas.OFICINA_POR_ID[687]["direccion"] and p["shippingAddress"]["address1"] == a["Dirección"]
     d = p["shippingAddress"]
     assert d["city"] == "Maracaibo" and d["provinceCode"] == "V" and d["address2"] == "C.I. V-12345678"
     assert d["phone"] == "+584141234567" and "TEALCA" in p["tags"] and p["lineItems"][0]["requiresShipping"]
@@ -298,6 +299,10 @@ def test_pedido_domicilio_caracas_y_miranda():
     assert a["Tipo de entrega"] == "Entrega a domicilio" and a["Estado DroPanas ID"] == "24" and a["Ciudad DroPanas ID"] == "149"
     assert a["Dirección"].startswith("Av. Urdaneta") and a["Punto de referencia"] == "Frente a la panadería"
     assert "Oficina DroPanas ID" not in a
+    _, errores = reglas.validar_datos({**base, "estado": "Distrito Capital", "ciudad": "Caracas", "direccion": "Catia"})
+    assert not errores  # cualquier texto es válido
+    _, errores = reglas.validar_datos({**base, "estado": "Distrito Capital", "ciudad": "Caracas", "direccion": "  "})
+    assert "direccion" in errores
     datos, errores = reglas.validar_datos({**base, "estado": "Miranda", "ciudad": "Guarenas"})
     assert not errores and datos["domicilio"] and datos["ciudad_id"] == 275
     # El Junquito (Distrito Capital) sigue siendo retiro en oficina

@@ -90,3 +90,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.19 — Se ocultan "Add to cart", cantidad y "Comprar ya" del tema cuando nuestro botón carga bien.
 - v0.20 — Si la plantilla no tiene botón de compra, nuestro botón se pone debajo del precio (o del título). Verificado en vivo: Creatina, Shilajit y Maca.
 - v0.21 — Integración DroPanas: estados, ciudades y oficinas desde el catálogo oficial (`oficinas_tealca.csv`, 134 oficinas), oficina por número, IDs de DroPanas ocultos en el pedido, teléfono 04/02 de 11 dígitos, cédula V/E/P/J de 7–9 dígitos, dirección ≤250, punto de referencia ≤300. UTM con "+" como Releasit.
+- v0.22 — En retiro en oficina, la "Dirección" del cliente es la de la oficina Tealca; en domicilio cualquier texto es válido.
