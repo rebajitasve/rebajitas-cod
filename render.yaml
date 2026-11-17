@@ -17,13 +17,13 @@ services:
       - key: MODO_PRUEBA       # "1" = prueba, "0" = crea pedidos reales. Se decide SOLO en la página de Render
         sync: false            # (si tuviera un valor aquí, cada subida a GitHub lo volvería a poner)
       - key: SHOPIFY_TIENDA    # dirección interna de la tienda en Shopify
-        value: e1bvrm-ze.myshopify.com
+        value: ifgcu1-dg.myshopify.com
       - key: SHOPIFY_CLIENT_ID      # "ID de cliente" de la app en dev.shopify.com
         sync: false
       - key: SHOPIFY_CLIENT_SECRET  # "Secreto del cliente" de la app en dev.shopify.com
         sync: false
       - key: TIENDA_ORIGENES   # direcciones de la tienda autorizadas a enviar el formulario
-        value: https://rebajitasve.com,https://www.rebajitasve.com,https://e1bvrm-ze.myshopify.com
+        value: https://rebajitasve.com,https://www.rebajitasve.com,https://ifgcu1-dg.myshopify.com
       - key: SHEETS_URL        # dirección que da Apps Script al implementar (termina en /exec)
         sync: false
       - key: SHEETS_CLAVE      # la misma clave escrita en el código de Apps Script

@@ -75,3 +75,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.14 — Todo Miranda con entrega a domicilio; cédula en la columna P de la hoja; verificación de Google Sheets en la pantalla de la app.
 - v0.15 — Primer pedido real OK (#3805). Se enlaza/crea el cliente por teléfono y el pedido queda como "requiere envío".
 - v0.16 — La pestaña del mes se llama "Tealca COD {mes}" (ej. "Tealca COD Noviembre"), nombre real confirmado por Mike. Verificación de la hoja con mensajes más claros.
+- v0.17 — Migración a la tienda nueva de Shopify `ifgcu1-dg.myshopify.com` (la vieja era `e1bvrm-ze.myshopify.com`).

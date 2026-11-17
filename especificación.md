@@ -59,7 +59,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - La dirección principal del servidor (`/`, la que abre Shopify al tocar la app en el panel) muestra si la conexión con Shopify funciona y si está en modo prueba o real.
 
 ## Tienda
-- Shopify: `e1bvrm-ze.myshopify.com` · Pública: `rebajitasve.com`
+- Shopify: `ifgcu1-dg.myshopify.com` · Pública: `rebajitasve.com`
 - App en el Dev Dashboard: "Rebajitas COD", permisos `write_orders, read_products, read_customers, write_customers`, instalada en la tienda (nov. 2026). Llaves por client credentials (token de 24 h que el servidor renueva solo).
 
 ## Diagnóstico
