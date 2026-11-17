@@ -81,3 +81,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.17 — Migración a la tienda nueva de Shopify `ifgcu1-dg.myshopify.com` (la vieja era `e1bvrm-ze.myshopify.com`).
 - v0.18 — Botón en todos los productos con un solo código en theme.liquid (se coloca solo bajo el botón de compra; sigue la variante elegida). La pantalla de la app muestra si faltan permisos (clientes).
 - v0.19 — Se ocultan "Add to cart", cantidad y "Comprar ya" del tema cuando nuestro botón carga bien.
+- v0.20 — Si la plantilla no tiene botón de compra, nuestro botón se pone debajo del precio (o del título). Verificado en vivo: Creatina, Shilajit y Maca.

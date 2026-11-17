@@ -64,9 +64,12 @@
   raices.forEach(function (r) { if (r !== raiz && !r.dataset.listo) r.remove(); });
   if (manuales.length > 1) aviso("El bloque del botón está pegado más de una vez en esta página: deja solo uno.", false);
   if (raiz.dataset.auto) {
+    // Debajo del botón de compra; si la plantilla no lo tiene, debajo del precio o del título del producto.
     var anclaForm = formProducto();
-    if (!anclaForm) { aviso("No encontré el formulario de compra del producto para poner el botón debajo.", false); return; }
-    var ancla = anclaForm.closest("product-form") || anclaForm;
+    var ancla = anclaForm ? (anclaForm.closest("product-form") || anclaForm)
+      : document.querySelector('product-info [id^="price-"], .product__info-container [id^="price-"], .product__info-container .price, product-info .price') ||
+        document.querySelector("product-info .product__title, .product__info-container .product__title, .product__title, .product-single__title");
+    if (!ancla) { aviso("No encontré dónde poner el botón (ni botón de compra, ni precio, ni título del producto).", false); return; }
     ancla.parentNode.insertBefore(raiz, ancla.nextSibling);
     raiz.hidden = false;
     raiz.style.marginTop = "12px";
