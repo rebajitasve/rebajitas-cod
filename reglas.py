@@ -105,7 +105,7 @@ MAX_OFERTAS = 6
 MAX_CANTIDAD = 20
 
 # WhatsApp que abre el botón final (el mismo desde donde Pancake escribe). Solo dígitos, con código de país.
-WHATSAPP_CONFIRMACION = "584122254027"
+WHATSAPP_CONFIRMACION = "584246875154"  # número de Pancake (0424-687.51.54), cambiado el 17-nov
 
 ETIQUETAS_PEDIDO = ["COD", "Formulario Rebajitas"]
 ORIGEN = "Formulario Rebajitas COD"

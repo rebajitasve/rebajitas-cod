@@ -44,7 +44,7 @@ def test_servidor_modo_prueba():
     assert c.get("/formulario.js").status_code == 200
     prod = c.get("/api/producto/prueba").json()
     assert [o["precio"] for o in prod["ofertas"]] == [37500.0, 57500.0, 65500.0] and "Zulia" in prod["estados"]
-    assert prod["whatsapp"] == "584122254027"
+    assert prod["whatsapp"] == "584246875154"
 
     r = c.post("/api/pedido", json=BUENOS)
     assert r.status_code == 200 and r.json()["numero"].startswith("#PRUEBA")

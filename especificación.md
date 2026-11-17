@@ -15,7 +15,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 2. El botón muestra el precio que da el servidor (leído de Shopify). Si el servidor no responde, el botón no aparece y la tienda sigue normal.
 3. El cliente llena: nombre, apellido, WhatsApp (+58), estado, ciudad, oficina TEALCA.
 4. El servidor valida todo otra vez, decide el precio (nunca confía en el navegador) y crea el pedido en Shopify.
-5. Pantalla final: resumen del pedido y botón verde **"Ir a WhatsApp a confirmar mi pedido"**, que abre el chat con +58 412 225 4027 (sin mensaje escrito: Pancake envía la confirmación automática y el cliente solo la responde). El número se cambia en `reglas.py` (`WHATSAPP_CONFIRMACION`).
+5. Pantalla final: resumen del pedido y botón verde **"Ir a WhatsApp a confirmar mi pedido"**, que abre el chat con +58 424 687 5154 (Pancake) (sin mensaje escrito: Pancake envía la confirmación automática y el cliente solo la responde). El número se cambia en `reglas.py` (`WHATSAPP_CONFIRMACION`).
 
 ## Menú de la app (dentro de Shopify)
 - La app "Rebajitas Form" tiene menú en la barra lateral de Shopify: **Inicio** (estado de conexiones) y **Ofertas**. Se arma con App Bridge (`<ui-nav-menu>`).
