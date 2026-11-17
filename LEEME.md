@@ -99,3 +99,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.24 — Menú Integraciones: píxel de Meta (InitiateCheckout y Purchase en el navegador + Purchase por API de conversiones sin duplicar) y estado de Google Sheets.
 - v0.25 — El botón final "Ir a WhatsApp a confirmar mi pedido" abre el número de Pancake: +58 424 687 5154.
 - v0.26 — Nota del pedido con la línea DROPANAS para el puente POS Cake → DroPanas. La confirmación muestra el pedido guardado en Shopify (arreglo de #1001/#1002). Un pedido solo cuenta como repetido si todos sus datos coinciden.
+- v0.27 — El número de pedido ya no se muestra en la confirmación ni llega al navegador (confidencial).

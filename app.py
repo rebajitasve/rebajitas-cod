@@ -306,7 +306,8 @@ async def pedido(request: Request):
                             status_code=502)
 
     # Resumen de lo que SE GUARDÓ en Shopify: la pantalla de confirmación muestra esto, no lo que dice el formulario.
-    resumen = {"numero": resultado["numero"], "total": _numero(oferta["precio"]), "moneda": v["moneda"],
+    # Sin el número de pedido (es confidencial): para el píxel va un código de evento que no lo revela.
+    resumen = {"evento": meta.id_evento(resultado["numero"]), "total": _numero(oferta["precio"]), "moneda": v["moneda"],
                "producto": v["titulo"], "cantidad": oferta["cantidad"], "domicilio": datos["domicilio"],
                "entrega": datos["direccion"] if datos["domicilio"] else datos["oficina"]["nombre"],
                "cedula": datos["cedula"], "telefono": reglas.telefono_local(datos["telefono"])}

@@ -76,6 +76,14 @@ def guardar(cuerpo: dict) -> tuple[dict, list[str]]:
     return para_panel(), []
 
 
+def id_evento(numero: str) -> str:
+    """Código del evento Purchase (navegador y servidor usan el mismo para no contarlo doble).
+    No revela el número de pedido: es una huella firmada con el secreto de la app."""
+    import hmac
+    clave = (config.SHOPIFY_CLIENT_SECRET or "rebajitas").encode()
+    return "rcod-" + hmac.new(clave, str(numero).encode(), hashlib.sha256).hexdigest()[:20]
+
+
 def _h(valor: str) -> str:
     return hashlib.sha256(valor.strip().lower().encode()).hexdigest()
 
@@ -90,7 +98,7 @@ def evento_compra(numero: str, datos: dict, producto: dict, oferta: dict, navega
                "client_user_agent": navegador.get("agente") or None,
                "fbp": navegador.get("fbp") or None, "fbc": navegador.get("fbc") or None}
     return {
-        "event_name": "Purchase", "event_time": int(time.time()), "event_id": "rcod-" + numero.lstrip("#"),
+        "event_name": "Purchase", "event_time": int(time.time()), "event_id": id_evento(numero),
         "action_source": "website", "event_source_url": navegador.get("url") or None,
         "user_data": {k: v for k, v in usuario.items() if v},
         "custom_data": {"currency": c["moneda"], "value": float(oferta["precio"]), "order_id": numero,

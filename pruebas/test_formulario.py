@@ -47,10 +47,10 @@ def test_servidor_modo_prueba():
     assert prod["whatsapp"] == "584246875154"
 
     r = c.post("/api/pedido", json=BUENOS)
-    assert r.status_code == 200 and r.json()["numero"].startswith("#PRUEBA")
+    assert r.status_code == 200 and r.json()["evento"].startswith("rcod-") and "numero" not in r.json()
     # El mismo cliente vuelve a tocar el botón: no se crea un pedido repetido
     r2 = c.post("/api/pedido", json=BUENOS)
-    assert r2.json()["repetido"] and r2.json()["numero"] == r.json()["numero"]
+    assert r2.json()["repetido"] and r2.json()["evento"] == r.json()["evento"]
 
 
 def test_servidor_rechaza_datos_malos():
@@ -426,7 +426,8 @@ def test_evento_compra_api_conversiones(integraciones_locales):
     oferta = ofertas_de("1", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
     ev = meta.evento_compra("#1010", datos, {"producto_id": "55", "titulo": "AO"}, oferta,
                             {"fbp": "fb.1.1.2", "fbc": "", "url": "https://rebajitasve.com/products/x", "agente": "Mozilla"}, "1.2.3.4")
-    assert ev["event_name"] == "Purchase" and ev["event_id"] == "rcod-1010" and ev["action_source"] == "website"
+    assert ev["event_name"] == "Purchase" and ev["event_id"] == meta.id_evento("#1010") and "1010" not in ev["event_id"]
+    assert ev["action_source"] == "website"
     u = ev["user_data"]
     assert u["ph"][0] == hashlib.sha256(b"584121234567").hexdigest() and "fbc" not in u and u["fbp"] == "fb.1.1.2"
     assert ev["custom_data"]["value"] == 57500.0 and ev["custom_data"]["currency"] == "VES" and ev["custom_data"]["num_items"] == 2
@@ -469,7 +470,8 @@ def test_confirmacion_muestra_el_pedido_guardado():
     assert a["entrega"] == "Tealca Delicias 5 de Julio" and a["cantidad"] == 1 and a["producto"]
     # Mismo cliente, misma oficina y oferta: es el mismo pedido (no se duplica) y muestra lo guardado
     b = c.post("/api/pedido", json={**BUENOS, "oficina_id": "687", "telefono": "4141112233"}).json()
-    assert b["repetido"] and b["numero"] == a["numero"] and b["entrega"] == a["entrega"]
+    assert b["repetido"] and b["evento"] == a["evento"] and b["entrega"] == a["entrega"]
+    assert "numero" not in a and "PRUEBA" not in json.dumps(a)  # el número de pedido no llega al navegador
     # Cambió la oficina: es un pedido nuevo, y la confirmación muestra la oficina nueva
     d = c.post("/api/pedido", json={**BUENOS, "oficina_id": "701", "telefono": "4141112233"}).json()
     assert not d.get("repetido") and d["entrega"] == "Tealca Maracaibo Norte"

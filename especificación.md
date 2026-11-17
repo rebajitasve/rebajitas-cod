@@ -101,7 +101,8 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - El bloque debe estar pegado **una sola vez** por página (debajo del precio).
 
 ## Pantalla de confirmación
-- Muestra lo que el servidor guardó en Shopify (número de pedido, producto, cantidad, total, teléfono, oficina o dirección, cédula), no lo que quedó escrito en el formulario.
+- Muestra lo que el servidor guardó en Shopify (producto, cantidad, total, teléfono, oficina o dirección, cédula), no lo que quedó escrito en el formulario.
+- **El número de pedido es confidencial**: no se muestra al cliente ni llega al navegador. Para el píxel se usa un código de evento firmado (`meta.id_evento`) que no lo revela; el servidor sí manda el order_id a Meta por la API de conversiones.
 
 ## Protecciones
 - Teléfono: solo celulares venezolanos (412, 414, 416, 422, 424, 426), con o sin 0 o +58.

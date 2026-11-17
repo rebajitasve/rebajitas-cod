@@ -284,9 +284,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       if (tipo === "abrir" && cfg.iniciar_compra) {
         cfg.ids.forEach(function (pid) { window.fbq("trackSingle", pid, "InitiateCheckout", params); });
       }
-      if (tipo === "compra" && extra && extra.numero) {
-        params.order_id = extra.numero;
-        var evento = { eventID: "rcod-" + String(extra.numero).replace(/^#/, "") };
+      if (tipo === "compra" && extra && extra.evento) {
+        var evento = { eventID: extra.evento };
         cfg.ids.forEach(function (pid) { window.fbq("trackSingle", pid, "Purchase", params, evento); });
       }
       aviso("Píxel: " + (tipo === "abrir" ? "InitiateCheckout" : "Purchase") + " enviado a " + cfg.ids.join(", "), true);
@@ -497,7 +496,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         // Todo lo que se muestra viene del servidor: es exactamente el pedido que se acaba de guardar en Shopify.
         var r = res.j;
         $("#l-t").textContent = "¡Listo, " + valores.nombre.trim().split(" ")[0] + "! Recibimos tu pedido";
-        $("#recap").innerHTML = [["Pedido", r.numero], ["Producto", r.producto + " × " + r.cantidad],
+        // El número de pedido NO se muestra al cliente (es confidencial).
+        $("#recap").innerHTML = [["Producto", r.producto + " × " + r.cantidad],
           [r.domicilio ? "Total al recibir" : "Total al retirar", dinero(r.total, r.moneda)],
           ["Teléfono", r.telefono], r.domicilio ? ["Entrega", r.entrega] : ["Retiro", r.entrega], ["Cédula", r.cedula]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
