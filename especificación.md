@@ -76,7 +76,9 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
   - País Venezuela y teléfono `+58…`.
 - Cliente: se busca en Shopify por teléfono y, si no existe, se crea (nombre, apellido, teléfono); luego se enlaza al pedido. Necesita los permisos `read_customers` y `write_customers` en la app. Si falla (por ejemplo sin esos permisos), el pedido se crea igual sin cliente. (El enlace directo por teléfono no se puede: Shopify exige correo, error del 16-nov-2026.)
 - Cada producto va marcado como **requiere envío** (sin esto Shopify mostraba "No se requiere envío", pedido #3805).
-- Sin nota.
+- **Nota del pedido** (campo `note`, "Notas" en Shopify), acordada con el puente POS Cake → DroPanas, porque la integración Shopify → POS Cake no copia la Información adicional. **Primera línea, formato exacto (no cambiar sin avisar al puente):**
+  `DROPANAS transportadora=tealca oficina=701 estado=23 ciudad=487 cedula=V-20216018`
+  Claves fijas en minúsculas y en ese orden, separadas por un espacio; valores sin espacios; si falta un dato va `FALTA`. En domicilio: `transportadora=domicilio oficina=FALTA` (pendiente confirmar con el puente). Se arma en `reglas.nota_dropanas`.
 - Etiquetas: `COD`, `Formulario Rebajitas` (la etiqueta `releasit_cod_form` no la usa nadie, confirmado por Mike).
 - Datos adicionales, con los mismos nombres que Releasit: UTM term, UTM content, UTM campaign, UTM medium, UTM source (si el cliente llegó por un anuncio), Country code, Nombre, Apellido, Teléfono (10 dígitos, sin +58), Estado (en mayúsculas), Ciudad, Oficina de TEALCA, IP address.
 - Las UTM se guardan cuando el cliente llega a la tienda, aunque luego navegue a otras páginas.
@@ -98,9 +100,12 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - El tema de la tienda esconde cajas "vacías" (`div:empty`); por eso el bloque se fuerza a `display:block`.
 - El bloque debe estar pegado **una sola vez** por página (debajo del precio).
 
+## Pantalla de confirmación
+- Muestra lo que el servidor guardó en Shopify (número de pedido, producto, cantidad, total, teléfono, oficina o dirección, cédula), no lo que quedó escrito en el formulario.
+
 ## Protecciones
 - Teléfono: solo celulares venezolanos (412, 414, 416, 422, 424, 426), con o sin 0 o +58.
-- Pedido repetido: si el mismo teléfono pide el mismo producto en menos de 3 minutos, no se crea otro (se devuelve el mismo número).
+- Pedido repetido: si el mismo teléfono pide el mismo producto con la MISMA oficina/dirección, cantidad y cédula en menos de 3 minutos, no se crea otro (se devuelve el mismo pedido). Si cambió algo, es un pedido nuevo.
 - Máximo 5 pedidos cada 10 minutos desde la misma conexión.
 - Producto agotado: no se crea el pedido.
 - Estas protecciones viven en la memoria del servidor: se reinician si Render reinicia.
@@ -119,6 +124,12 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - Funciona con un código de Apps Script pegado en la hoja (`integraciones/google_sheets.gs`) que recibe cada pedido real y agrega la fila. La pestaña se elige por mes (`SHEETS_HOJA` = "Tealca COD {mes}"); si no existe, va a "Pedidos sin pestaña". Se envía en segundo plano (el cliente no espera) con 3 reintentos; si falla, queda en el registro de Render para anotarlo a mano.
 - La pantalla de la app (`/`) verifica la hoja sin escribir nada y dice en palabras simples qué falla (acceso, clave, pestaña del mes inexistente, código desactualizado).
 - Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; P Cédula; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
+
+## Catálogo de oficinas: horarios con errores (vienen así de DroPanas)
+- Tealca Maracaibo Norte (701): "Sabados 8:30 am a 1:00 am" (probablemente 1:00 pm).
+- Tealca Merida Norte (2424): "Lunes a Viernes 8:00 am a 04:00 am" (probablemente 4:00 pm).
+- Tealca El Cementerio (1029): "Martes a Viernes 7:00 am a 3:00 am" (probablemente 3:00 pm).
+- El formulario los muestra tal cual vienen del archivo; se corrigen en el catálogo de DroPanas / `oficinas_tealca.csv`.
 
 ## Datos pendientes de Mike
 - ¿El precio de AO Black Maca en Shopify (Bs.S. 32.450) debe pasar a 37.500? El formulario usa 37.500 de todas formas.

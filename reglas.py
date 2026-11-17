@@ -287,6 +287,25 @@ def direccion_cliente(datos: dict) -> str:
     return (datos["direccion"] if datos["domicilio"] else datos["oficina"]["direccion"])[:MAX_DIRECCION]
 
 
+def nota_dropanas(datos: dict) -> str:
+    """Primera línea de la NOTA del pedido, acordada con el puente POS Cake → DroPanas (no cambiar sin avisar):
+    DROPANAS transportadora=tealca oficina=701 estado=23 ciudad=487 cedula=V-20216018
+    Claves fijas, en ese orden, separadas por un espacio; los valores nunca llevan espacios; si falta un dato: FALTA."""
+    def numero(valor):
+        texto = str(valor if valor is not None else "")
+        return texto if texto.isdigit() else "FALTA"
+    of = datos.get("oficina") or {}
+    cedula = re.sub(r"\s", "", datos.get("cedula") or "")
+    return " ".join([
+        "DROPANAS",
+        "transportadora=" + ("domicilio" if datos.get("domicilio") else "tealca"),
+        "oficina=" + numero(of.get("id")),
+        "estado=" + numero(datos.get("estado_id")),
+        "ciudad=" + numero(datos.get("ciudad_id")),
+        "cedula=" + (cedula if re.fullmatch(r"[VEPJ]-\d{7,9}", cedula) else "FALTA"),
+    ])
+
+
 def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: str, utm: dict | None = None) -> dict:
     """Arma el pedido tal como se envía a Shopify (orderCreate).
     En "Información adicional" van los datos exactos que necesita el puente Pancake → DroPanas
@@ -343,6 +362,7 @@ def armar_pedido(datos: dict, variante_id: str, oferta: dict, moneda: str, ip: s
         "billingAddress": direccion,
         "shippingLines": [{"title": "Entrega a domicilio" if datos["domicilio"] else "Gratis", "priceSet": dinero(0)}],
         "transactions": [{"kind": "SALE", "status": "PENDING", "gateway": PASARELA_COD, "amountSet": dinero(oferta["precio"])}],
+        "note": nota_dropanas(datos),  # primera línea de la nota: datos para el puente POS Cake → DroPanas
         "tags": ETIQUETAS_PEDIDO + (["DOMICILIO"] if datos["domicilio"] else ["TEALCA"]),
         "customAttributes": atributos,
     }

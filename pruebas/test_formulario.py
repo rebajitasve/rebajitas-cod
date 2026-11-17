@@ -437,3 +437,39 @@ def test_evento_compra_api_conversiones(integraciones_locales):
     falla = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(400, json={"error": {"message": "Invalid token"}})))
     ok, msg = meta.enviar([ev], cliente=falla)
     assert not ok and "Invalid token" in msg
+
+
+# ---------- Nota DROPANAS para el puente POS Cake → DroPanas ----------
+import re as _re  # noqa: E402
+FORMATO_NOTA = _re.compile(r"^DROPANAS transportadora=\S+ oficina=(\d+|FALTA) estado=(\d+|FALTA) ciudad=(\d+|FALTA) cedula=([VEPJ]-\d{7,9}|FALTA)$")
+
+
+def test_nota_dropanas_tealca():
+    datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "701", "cedula": "V-20.216.018"})
+    assert not errores
+    p = reglas.armar_pedido(datos, "1", ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
+    assert p["note"] == "DROPANAS transportadora=tealca oficina=701 estado=23 ciudad=487 cedula=V-20216018"
+    assert FORMATO_NOTA.match(p["note"].split("\n")[0])
+    # El resto del pedido no cambia
+    a = atributos(p)
+    assert a["Oficina DroPanas ID"] == "701" and "TEALCA" in p["tags"] and p["shippingAddress"]["address2"] == "C.I. V-20216018"
+
+
+def test_nota_dropanas_falta_y_domicilio():
+    assert reglas.nota_dropanas({"domicilio": False, "oficina": None, "estado_id": None, "ciudad_id": 487, "cedula": ""}) == \
+        "DROPANAS transportadora=tealca oficina=FALTA estado=FALTA ciudad=487 cedula=FALTA"
+    datos, _ = reglas.validar_datos({**BUENOS, "oficina_id": "", "estado": "Distrito Capital", "ciudad": "Caracas", "direccion": "Catia"})
+    nota = reglas.nota_dropanas(datos)
+    assert nota == "DROPANAS transportadora=domicilio oficina=FALTA estado=24 ciudad=149 cedula=V-12345678" and FORMATO_NOTA.match(nota)
+
+
+def test_confirmacion_muestra_el_pedido_guardado():
+    c = TestClient(servidor.app)
+    a = c.post("/api/pedido", json={**BUENOS, "oficina_id": "687", "telefono": "4141112233"}).json()
+    assert a["entrega"] == "Tealca Delicias 5 de Julio" and a["cantidad"] == 1 and a["producto"]
+    # Mismo cliente, misma oficina y oferta: es el mismo pedido (no se duplica) y muestra lo guardado
+    b = c.post("/api/pedido", json={**BUENOS, "oficina_id": "687", "telefono": "4141112233"}).json()
+    assert b["repetido"] and b["numero"] == a["numero"] and b["entrega"] == a["entrega"]
+    # Cambió la oficina: es un pedido nuevo, y la confirmación muestra la oficina nueva
+    d = c.post("/api/pedido", json={**BUENOS, "oficina_id": "701", "telefono": "4141112233"}).json()
+    assert not d.get("repetido") and d["entrega"] == "Tealca Maracaibo Norte"

@@ -494,11 +494,12 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       .then(function (res) {
         if (res.j && res.j.errores) { mostrarErrores(res.j.errores); return; }
         if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.error) || "");
-        var o = oferta();
+        // Todo lo que se muestra viene del servidor: es exactamente el pedido que se acaba de guardar en Shopify.
+        var r = res.j;
         $("#l-t").textContent = "¡Listo, " + valores.nombre.trim().split(" ")[0] + "! Recibimos tu pedido";
-        $("#recap").innerHTML = [["Pedido", res.j.numero], ["Producto", datos.titulo + " × " + o.cantidad], [dom ? "Total al recibir" : "Total al retirar", dinero(o.precio, datos.moneda)],
-          ["WhatsApp", "+58 " + valores.telefono], dom ? ["Entrega", valores.direccion.trim()] : ["Retiro", ofi.n],
-          ["Cédula", valores.cedula]]
+        $("#recap").innerHTML = [["Pedido", r.numero], ["Producto", r.producto + " × " + r.cantidad],
+          [r.domicilio ? "Total al recibir" : "Total al retirar", dinero(r.total, r.moneda)],
+          ["Teléfono", r.telefono], r.domicilio ? ["Entrega", r.entrega] : ["Retiro", r.entrega], ["Cédula", r.cedula]]
           .map(function (f) { return "<div><span>" + esc(f[0]) + "</span><span>" + esc(f[1]) + "</span></div>"; }).join("");
 $("#l-wa").href = "https://wa.me/" + (datos.whatsapp || "");
         $("form").hidden = true;

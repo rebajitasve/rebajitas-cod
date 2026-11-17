@@ -31,7 +31,7 @@ ESTATICOS = config.CARPETA / "estaticos"
 
 # Protecciones simples en memoria: pedidos repetidos y demasiados intentos desde la misma conexión.
 _candado = threading.Lock()
-_recientes: dict[tuple, tuple[float, str]] = {}   # (teléfono, variante) -> (hora, número de pedido)
+_recientes: dict[tuple, tuple[float, dict]] = {}  # (teléfono, variante, entrega, cantidad, cédula) -> (hora, resumen del pedido)
 _intentos: dict[str, list[float]] = {}            # IP -> horas de los últimos pedidos
 MINUTOS_REPETIDO = 3
 MAX_PEDIDOS_POR_IP = 5
@@ -272,11 +272,13 @@ async def pedido(request: Request):
 
     ip = ip_de(request)
     ahora = time.time()
-    clave = (datos["telefono"], variante)
+    # Es "el mismo pedido" solo si TODO coincide; si el cliente cambió algo (oficina, cantidad…), es un pedido nuevo.
+    entrega = datos["direccion"] if datos["domicilio"] else str((datos["oficina"] or {}).get("id"))
+    clave = (datos["telefono"], variante, entrega, str(cuerpo.get("oferta", 0)), datos["cedula"])
     with _candado:
         previo = _recientes.get(clave)
         if previo and ahora - previo[0] < MINUTOS_REPETIDO * 60:
-            return {"ok": True, "numero": previo[1], "repetido": True}
+            return {"ok": True, "repetido": True, **previo[1]}
         horas = [h for h in _intentos.get(ip, []) if ahora - h < MINUTOS_VENTANA_IP * 60]
         if len(horas) >= MAX_PEDIDOS_POR_IP:
             return JSONResponse({"error": "Recibimos demasiados pedidos seguidos. Espera unos minutos o escríbenos por WhatsApp."},
@@ -303,10 +305,15 @@ async def pedido(request: Request):
         return JSONResponse({"error": "No pudimos registrar tu pedido. Intenta de nuevo en un momento o escríbenos por WhatsApp."},
                             status_code=502)
 
+    # Resumen de lo que SE GUARDÓ en Shopify: la pantalla de confirmación muestra esto, no lo que dice el formulario.
+    resumen = {"numero": resultado["numero"], "total": _numero(oferta["precio"]), "moneda": v["moneda"],
+               "producto": v["titulo"], "cantidad": oferta["cantidad"], "domicilio": datos["domicilio"],
+               "entrega": datos["direccion"] if datos["domicilio"] else datos["oficina"]["nombre"],
+               "cedula": datos["cedula"], "telefono": reglas.telefono_local(datos["telefono"])}
     with _candado:
-        _recientes[clave] = (ahora, resultado["numero"])
+        _recientes[clave] = (ahora, resumen)
         _intentos[ip] = horas + [ahora]
-        for k in [k for k, (h, _) in _recientes.items() if ahora - h > MINUTOS_REPETIDO * 60]:
+        for k in [k for k, (h, _r) in _recientes.items() if ahora - h > MINUTOS_REPETIDO * 60]:
             del _recientes[k]
     log.info("Pedido %s creado: %s x%s", resultado["numero"], v["titulo"], oferta["cantidad"])
     if not config.MODO_PRUEBA:
@@ -316,7 +323,7 @@ async def pedido(request: Request):
         meta.compra_en_segundo_plano(resultado["numero"], datos, v, oferta, nav, ip)
     if sheets.activo() and not config.MODO_PRUEBA:
         sheets.enviar_en_segundo_plano(resultado["numero"], datos, v["titulo"], oferta, utm)
-    return {"ok": True, "numero": resultado["numero"], "total": _numero(oferta["precio"]), "moneda": v["moneda"]}
+    return {"ok": True, **resumen}
 
 
 if __name__ == "__main__":
