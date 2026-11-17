@@ -261,7 +261,44 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     document.documentElement.style.overflow = scrollPrevio;
     setTimeout(function () { capa.style.setProperty("display", "none", "important"); if (ultimoFoco) ultimoFoco.focus(); }, 200);
   }
-  function pixel() { /* Etapa 4: eventos del píxel de Meta. */ }
+  // ---- Píxel de Meta: InitiateCheckout al abrir, Purchase al crear el pedido ----
+  // El Purchase lleva el mismo número de evento que el que manda el servidor (API de conversiones): Meta lo cuenta una vez.
+  var pixelesIniciados = {};
+  function prepararPixel(cfg) {
+    if (!window.fbq) {
+      /* Código base oficial de Meta */
+      !function (f, b, e, v, n, t, s) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); };
+        if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
+        s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s); }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    }
+    cfg.ids.forEach(function (id) { if (!pixelesIniciados[id]) { window.fbq("init", id); pixelesIniciados[id] = 1; } });
+  }
+  function pixel(tipo, extra) {
+    var cfg = datos && datos.pixel;
+    if (!cfg || !cfg.activo || !cfg.ids || !cfg.ids.length) return;
+    try {
+      prepararPixel(cfg);
+      var o = oferta(), id = String(datos.producto_id || VARIANTE);
+      var params = { value: o.precio, currency: cfg.moneda, content_type: "product", content_ids: [id], content_name: datos.titulo,
+        num_items: o.cantidad, contents: [{ id: id, quantity: o.cantidad }] };
+      if (tipo === "abrir" && cfg.iniciar_compra) {
+        cfg.ids.forEach(function (pid) { window.fbq("trackSingle", pid, "InitiateCheckout", params); });
+      }
+      if (tipo === "compra" && extra && extra.numero) {
+        params.order_id = extra.numero;
+        var evento = { eventID: "rcod-" + String(extra.numero).replace(/^#/, "") };
+        cfg.ids.forEach(function (pid) { window.fbq("trackSingle", pid, "Purchase", params, evento); });
+      }
+      aviso("Píxel: " + (tipo === "abrir" ? "InitiateCheckout" : "Purchase") + " enviado a " + cfg.ids.join(", "), true);
+    } catch (e) { /* el píxel nunca debe impedir una compra */ }
+  }
+  // Cookies del píxel (_fbp, _fbc) para que Meta reconozca la compra hecha desde un anuncio.
+  function datosNavegador() {
+    var c = function (n) { var m = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; };
+    var fbc = c("_fbc"), clic = (location.search.match(/[?&]fbclid=([^&]+)/) || [])[1];
+    if (!fbc && clic) fbc = "fb.1." + Date.now() + "." + clic;
+    return { fbp: c("_fbp"), fbc: fbc, url: location.href.split("#")[0] };
+  }
 
   function construir() {
     var d = datos;
@@ -450,6 +487,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     valores.variante = VARIANTE;
     valores.oferta = datos.ofertas.indexOf(oferta());
     valores.utm = UTM;
+    valores.navegador = datosNavegador();
 
     fetch(SERVIDOR + "/api/pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(valores) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })

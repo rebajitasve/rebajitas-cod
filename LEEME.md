@@ -8,6 +8,7 @@ App propia para la tienda Shopify: botón "Pagar al recibir" + formulario + pedi
 - `oficinas_tealca.csv` — catálogo oficial de oficinas TEALCA de DroPanas. De aquí salen los estados, ciudades y oficinas del formulario.
 - `sheets.py` — envía cada pedido nuevo a Google Sheets.
 - `integraciones/google_sheets.gs` — código que se pega en la hoja de Google (Apps Script).
+- `meta.py` — píxel de Meta y API de conversiones.
 - `almacen.py` — guarda las ofertas del menú (en Shopify, como dato propio de la app).
 - `sesion.py` — revisa que el menú solo se use desde el panel de Shopify.
 - `estaticos/panel/` — páginas del menú de la app (Ofertas).
@@ -95,3 +96,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.21 — Integración DroPanas: estados, ciudades y oficinas desde el catálogo oficial (`oficinas_tealca.csv`, 134 oficinas), oficina por número, IDs de DroPanas ocultos en el pedido, teléfono 04/02 de 11 dígitos, cédula V/E/P/J de 7–9 dígitos, dirección ≤250, punto de referencia ≤300. UTM con "+" como Releasit.
 - v0.22 — En retiro en oficina, la "Dirección" del cliente es la de la oficina Tealca; en domicilio cualquier texto es válido.
 - v0.23 — Menú de la app dentro de Shopify: Inicio y **Ofertas** (bundles y descuentos por producto, con etiqueta, color, imagen, preseleccionada y vista previa). Se guardan en Shopify.
+- v0.24 — Menú Integraciones: píxel de Meta (InitiateCheckout y Purchase en el navegador + Purchase por API de conversiones sin duplicar) y estado de Google Sheets.

@@ -1,4 +1,5 @@
 """Revisiones automáticas. Se corren con:  python -m pytest -q"""
+import hashlib
 import json
 import os
 import sys
@@ -384,3 +385,55 @@ def test_panel_exige_sesion_de_shopify(monkeypatch):
     assert ok.status_code == 200
     for malo in (token(aud="otra"), token(dest="https://otra.myshopify.com"), token(exp=_t.time() - 100), token()[:-3] + "abc"):
         assert c.get("/panel-api/productos", headers={"Authorization": "Bearer " + malo}).status_code == 401
+
+
+# ---------- Integraciones: píxel de Meta ----------
+import meta  # noqa: E402
+
+TOKEN_FALSO = "EAAB" + "x" * 60
+
+
+@pytest.fixture
+def integraciones_locales(tmp_path, monkeypatch):
+    monkeypatch.setattr(almacen, "ARCHIVO_INTEGRACIONES", tmp_path / "integraciones.json")
+    almacen._mem_int.update(datos=None, hora=0)
+    yield
+    almacen._mem_int.update(datos=None, hora=0)
+
+
+def test_pixel_guardar_y_no_filtrar_token(integraciones_locales):
+    c = TestClient(servidor.app)
+    assert "Integraciones" in c.get("/panel/integraciones").text
+    assert c.get("/api/producto/prueba").json()["pixel"] == {"activo": False}
+    r = c.put("/panel-api/integraciones/pixel", json={"activo": True, "ids": "Mi píxel: 1234567890123456", "token": TOKEN_FALSO,
+                                                     "moneda": "VES", "iniciar_compra": True})
+    assert r.status_code == 200 and r.json()["pixel"]["token_guardado"] == "•••• xxxx"
+    prod = c.get("/api/producto/prueba").json()
+    assert prod["pixel"] == {"activo": True, "ids": ["1234567890123456"], "moneda": "VES", "iniciar_compra": True}
+    assert TOKEN_FALSO not in c.get("/api/producto/prueba").text and TOKEN_FALSO not in c.get("/panel-api/integraciones").text
+    # Guardar sin escribir token conserva el anterior; "quitar token" lo borra
+    c.put("/panel-api/integraciones/pixel", json={"activo": True, "ids": "1234567890123456", "token": ""})
+    assert meta.configuracion()["token"] == TOKEN_FALSO
+    c.put("/panel-api/integraciones/pixel", json={"activo": True, "ids": "1234567890123456", "borrar_token": True})
+    assert meta.configuracion()["token"] == ""
+    r = c.put("/panel-api/integraciones/pixel", json={"activo": True, "ids": "abc"})
+    assert r.status_code == 422
+
+
+def test_evento_compra_api_conversiones(integraciones_locales):
+    meta.guardar({"activo": True, "ids": "1234567890123456", "token": TOKEN_FALSO, "moneda": "VES"})
+    datos, _ = reglas.validar_datos(BUENOS)
+    oferta = ofertas_de("1", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
+    ev = meta.evento_compra("#1010", datos, {"producto_id": "55", "titulo": "AO"}, oferta,
+                            {"fbp": "fb.1.1.2", "fbc": "", "url": "https://rebajitasve.com/products/x", "agente": "Mozilla"}, "1.2.3.4")
+    assert ev["event_name"] == "Purchase" and ev["event_id"] == "rcod-1010" and ev["action_source"] == "website"
+    u = ev["user_data"]
+    assert u["ph"][0] == hashlib.sha256(b"584121234567").hexdigest() and "fbc" not in u and u["fbp"] == "fb.1.1.2"
+    assert ev["custom_data"]["value"] == 57500.0 and ev["custom_data"]["currency"] == "VES" and ev["custom_data"]["num_items"] == 2
+    enviados = []
+    cliente = httpx.Client(transport=httpx.MockTransport(lambda r: (enviados.append((str(r.url), json.loads(r.content))), httpx.Response(200, json={"events_received": 1}))[1]))
+    ok, _ = meta.enviar([ev], codigo_prueba="TEST123", cliente=cliente)
+    assert ok and "/1234567890123456/events" in enviados[0][0] and enviados[0][1]["test_event_code"] == "TEST123"
+    falla = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(400, json={"error": {"message": "Invalid token"}})))
+    ok, msg = meta.enviar([ev], cliente=falla)
+    assert not ok and "Invalid token" in msg

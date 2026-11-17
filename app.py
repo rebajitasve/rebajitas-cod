@@ -1,5 +1,6 @@
 """Servidor del formulario: entrega el formulario a la tienda y crea los pedidos en Shopify."""
 import logging
+import re
 from html import escape
 import threading
 import time
@@ -11,6 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 import almacen
 import config
+import meta
 import reglas
 import sesion
 import sheets
@@ -56,7 +58,7 @@ def cabecera_panel(titulo: str) -> str:
 <meta name="shopify-api-key" content="{escape(config.SHOPIFY_CLIENT_ID)}">
 <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 <title>{escape(titulo)} · Rebajitas Form</title>
-<ui-nav-menu><a href="/" rel="home">Inicio</a><a href="/panel/ofertas">Ofertas</a></ui-nav-menu>"""
+<ui-nav-menu><a href="/" rel="home">Inicio</a><a href="/panel/ofertas">Ofertas</a><a href="/panel/integraciones">Integraciones</a></ui-nav-menu>"""
 
 
 def respuesta_panel(html: str) -> HTMLResponse:
@@ -82,6 +84,49 @@ def _sesion_invalida(request: Request, e: sesion.SesionInvalida):
 def panel_ofertas():
     html = (ESTATICOS / "panel" / "ofertas.html").read_text(encoding="utf-8")
     return respuesta_panel(html.replace("<!--CABECERA-->", cabecera_panel("Ofertas")))
+
+
+@app.get("/panel/integraciones", response_class=HTMLResponse)
+def panel_integraciones():
+    html = (ESTATICOS / "panel" / "integraciones.html").read_text(encoding="utf-8")
+    return respuesta_panel(html.replace("<!--CABECERA-->", cabecera_panel("Integraciones")))
+
+
+@app.get("/panel-api/integraciones")
+def panel_leer_integraciones(request: Request):
+    sesion_panel(request)
+    hoja_ok, hoja_txt = sheets.verificar()
+    return {"pixel": meta.para_panel(), "monedas": meta.MONEDAS,
+            "sheets": {"ok": hoja_ok, "texto": hoja_txt}}
+
+
+@app.put("/panel-api/integraciones/pixel")
+async def panel_guardar_pixel(request: Request):
+    sesion_panel(request)
+    try:
+        pixel, errores = meta.guardar(await request.json())
+    except shopify.ErrorShopify as e:
+        log.error("No se guardó el píxel: %s", e)
+        return JSONResponse({"error": "Shopify no guardó la configuración. Intenta de nuevo."}, status_code=502)
+    if errores:
+        return JSONResponse({"errores": errores}, status_code=422)
+    log.info("Píxel de Meta guardado (activo=%s, %s píxel(es))", pixel["activo"], len(pixel["ids"].split()))
+    return {"ok": True, "pixel": pixel}
+
+
+@app.post("/panel-api/integraciones/pixel/prueba")
+async def panel_probar_pixel(request: Request):
+    """Manda un Purchase de prueba por la API de conversiones (aparece en Administrador de eventos → Probar eventos)."""
+    sesion_panel(request)
+    cuerpo = await request.json()
+    codigo = re.sub(r"[^A-Za-z0-9]", "", str(cuerpo.get("codigo_prueba") or ""))[:20]
+    if not codigo:
+        return JSONResponse({"error": "Escribe el código de prueba que te da Meta en «Probar eventos»"}, status_code=422)
+    evento = meta.evento_compra("PRUEBA-" + str(int(time.time())), {"telefono": "+584141234567", "nombre": "Prueba", "apellido": "Rebajitas",
+                                "ciudad": "Caracas"}, {"producto_id": "prueba", "titulo": "Evento de prueba"},
+                                {"precio": Decimal("1"), "cantidad": 1}, {"url": "https://" + config.SHOPIFY_TIENDA}, ip_de(request))
+    ok, msg = meta.enviar([evento], codigo_prueba=codigo)
+    return JSONResponse({"ok": ok, "mensaje": msg}, status_code=200 if ok else 502)
 
 
 @app.get("/panel/panel.js")
@@ -203,6 +248,8 @@ def producto(variante: str):
         "domicilio": reglas.ENTREGA_DOMICILIO,
         "whatsapp": reglas.WHATSAPP_CONFIRMACION,
         "ocultar_carrito": reglas.OCULTAR_CARRITO_TEMA,
+        "pixel": meta.para_navegador(),
+        "producto_id": v.get("producto_id", ""),
         "modo_prueba": config.MODO_PRUEBA,
     }
 
@@ -262,6 +309,11 @@ async def pedido(request: Request):
         for k in [k for k, (h, _) in _recientes.items() if ahora - h > MINUTOS_REPETIDO * 60]:
             del _recientes[k]
     log.info("Pedido %s creado: %s x%s", resultado["numero"], v["titulo"], oferta["cantidad"])
+    if not config.MODO_PRUEBA:
+        nav = cuerpo.get("navegador") if isinstance(cuerpo.get("navegador"), dict) else {}
+        nav = {k: str(nav.get(k) or "")[:500] for k in ("fbp", "fbc", "url")}
+        nav["agente"] = request.headers.get("user-agent", "")[:500]
+        meta.compra_en_segundo_plano(resultado["numero"], datos, v, oferta, nav, ip)
     if sheets.activo() and not config.MODO_PRUEBA:
         sheets.enviar_en_segundo_plano(resultado["numero"], datos, v["titulo"], oferta, utm)
     return {"ok": True, "numero": resultado["numero"], "total": _numero(oferta["precio"]), "moneda": v["moneda"]}

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!--CABECERA-->
+<style>
+  :root{--fondo:#f1f2f4;--carta:#fff;--tinta:#1a1c1d;--suave:#616a75;--linea:#e1e3e5;--campo:#fff;--acento:#0d7a50;--acento-suave:#e3f3ec;
+    --peligro:#c2372f;--foco:#2c6ecb;--r:12px;font-family:-apple-system,BlinkMacSystemFont,"San Francisco","Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font-size:14px;line-height:1.45}
+  .pagina{max-width:1100px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 60px}
+  h1{font-size:20px;margin:0}
+  h2{font-size:15px;margin:0}
+  .barra{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .barra .crece{flex:1;min-width:0}
+  .ayuda{color:var(--suave);font-size:13px;margin:4px 0 0}
+  .carta{background:var(--carta);border-radius:var(--r);box-shadow:0 1px 0 rgba(26,26,26,.07),0 0 0 1px rgba(26,26,26,.06);padding:16px}
+  .boton{border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;color:var(--tinta);
+    box-shadow:0 0 0 1px var(--linea),0 1px 0 rgba(0,0,0,.05)}
+  .boton:hover{background:#f6f6f7}
+  .boton.primario{background:var(--tinta);color:#fff;box-shadow:none}
+  .boton.primario:hover{background:#303030}
+  .boton.primario[disabled]{opacity:.5;cursor:default}
+  .boton.chico{padding:5px 10px;font-size:13px}
+  .boton.fantasma{box-shadow:none;background:transparent;color:var(--suave)}
+  .boton.peligro{color:var(--peligro)}
+  .boton:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--foco);outline-offset:1px}
+  input,select{font:inherit;color:var(--tinta);background:var(--campo);border:1px solid #c9cccf;border-radius:8px;padding:7px 10px;width:100%;min-width:0}
+  input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--tinta)}
+  label.campo{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;min-width:0}
+  .buscar{max-width:360px}
+  .lista{display:flex;flex-direction:column}
+  .fila{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--linea);cursor:pointer;border-radius:8px}
+  .fila:last-child{border-bottom:0}
+  .fila:hover{background:#f7f7f8}
+  .mini{width:44px;height:44px;border-radius:8px;background:#eef0f2 center/cover no-repeat;flex:none;border:1px solid var(--linea)}
+  .fila .txt{flex:1;min-width:0}
+  .fila .nombre{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef0f2;color:var(--suave);white-space:nowrap}
+  .chip.si{background:var(--acento-suave);color:var(--acento)}
+  .chip.borrador{background:#fff4d6;color:#7a5600}
+  .vacio{color:var(--suave);padding:24px;text-align:center}
+  .editor{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:900px){.editor{grid-template-columns:1fr}}
+  .ofertas{display:flex;flex-direction:column;gap:12px}
+  .of{border:1px solid var(--linea);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .of-cab{display:flex;align-items:center;gap:8px}
+  .of-cab b{flex:1}
+  .rejilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .rejilla.dos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media (max-width:560px){.rejilla,.rejilla.dos{grid-template-columns:1fr}}
+  .fotos{display:flex;gap:6px;flex-wrap:wrap}
+  .fotos button{width:44px;height:44px;border-radius:8px;border:2px solid transparent;background:#eef0f2 center/cover no-repeat;cursor:pointer;padding:0}
+  .fotos button.sel{border-color:var(--tinta)}
+  .fotos .ninguna{font-size:11px;color:var(--suave);background:#f6f6f7}
+  .pegado{position:sticky;top:12px}
+  .previa{background:#fff;border-radius:16px;padding:16px;border:1px solid var(--linea)}
+  .previa .sec{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5d6865}
+  .p-of{position:relative;display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid #dfe5e2;border-radius:14px;margin-bottom:10px}
+  .p-of.sel{border-color:#0d7a50;background:#e3f3ec}
+  .p-dot{width:18px;height:18px;border-radius:50%;border:2px solid #b9c4bf;flex:none}
+  .p-of.sel .p-dot{border-color:#0d7a50;box-shadow:inset 0 0 0 3px #e3f3ec;background:#0d7a50}
+  .p-img{width:44px;height:44px;border-radius:10px;background:#eef0f2 center/cover no-repeat;flex:none}
+  .p-main{flex:1;min-width:0}
+  .p-name{font-weight:700}
+  .p-save{font-size:12px;color:#0d7a50;font-weight:600}
+  .p-price{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .p-price b{display:block}
+  .p-price s{color:#5d6865;font-size:12px}
+  .p-badge{position:absolute;top:-9px;right:12px;color:#fff;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .aviso{background:#fff4d6;color:#5c4100;border-radius:10px;padding:10px 12px;font-size:13px}
+  .error{background:#fdecea;color:var(--peligro);border-radius:10px;padding:10px 12px;font-size:13px}
+  .interruptor{display:flex;align-items:center;gap:8px;font-weight:600}
+  .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+  [hidden],ui-nav-menu{display:none!important}
+</style>
+<style>
+  .seccion{display:flex;flex-direction:column;gap:12px;max-width:760px}
+  .cab{display:flex;align-items:center;gap:12px}
+  .logo{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+  textarea{font:inherit;color:var(--tinta);border:1px solid #c9cccf;border-radius:8px;padding:8px 10px;width:100%;min-height:64px;resize:vertical}
+  .estado{font-weight:600}
+  .ok{color:var(--acento)} .mal{color:var(--peligro)}
+  details summary{cursor:pointer;font-weight:600;color:var(--suave)}
+  ol{margin:6px 0 0;padding-left:20px;color:var(--suave);font-size:13px}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="barra"><div class="crece"><h1>Integraciones</h1><p class="ayuda">Conecta el formulario con tus herramientas de publicidad y reportes.</p></div></div>
+  <div class="seccion">
+    <div class="carta">
+      <div class="cab" style="margin-bottom:12px">
+        <div class="logo" style="background:#0866ff">f</div>
+        <div class="crece"><h2>Píxel de Meta (Facebook e Instagram)</h2>
+          <p class="ayuda" style="margin:0">El formulario manda <b>InitiateCheckout</b> al abrirse y <b>Purchase</b> al crear el pedido (con precio, producto y cantidad).</p></div>
+        <label class="interruptor"><input type="checkbox" id="px-activo"> Activo</label>
+      </div>
+      <div class="rejilla dos">
+        <label class="campo">ID del píxel<textarea id="px-ids" placeholder="Ej: 123456789012345 (si son varios, uno por línea)"></textarea>
+          <span class="ayuda">Lo ves en Administrador de eventos de Meta → tu píxel → Configuración.</span></label>
+        <div class="campo" style="gap:10px">
+          <label class="campo">Moneda que verá Meta<select id="px-moneda"></select>
+            <span class="ayuda">Los montos van tal cual están en la tienda (bolívares).</span></label>
+          <label class="interruptor" style="font-weight:500"><input type="checkbox" id="px-ic"> Enviar InitiateCheckout al abrir el formulario</label>
+        </div>
+      </div>
+      <h2 style="margin:18px 0 6px">API de conversiones (recomendado)</h2>
+      <p class="ayuda" style="margin:0 0 8px">El servidor también manda cada compra directo a Meta, así se cuenta aunque el cliente tenga bloqueador de anuncios. No se cuenta doble: ambos llevan el mismo número de evento.</p>
+      <div class="rejilla dos">
+        <label class="campo">Token de acceso<input id="px-token" type="password" autocomplete="off" placeholder="Pega el token aquí">
+          <span class="ayuda" id="px-token-estado"></span></label>
+        <label class="campo">Código de prueba (opcional)<input id="px-codigo" placeholder="Ej: TEST12345">
+          <span class="ayuda">Solo para probar. Bórralo cuando termines, o las compras reales irán a «Probar eventos».</span></label>
+      </div>
+      <details style="margin-top:10px"><summary>¿Cómo saco el token?</summary>
+        <ol><li>Abre Administrador de eventos de Meta y elige tu píxel.</li><li>Entra a <b>Configuración</b>.</li>
+        <li>En «API de conversiones», toca <b>Generar token de acceso</b>.</li><li>Cópialo y pégalo aquí (solo se muestra una vez).</li></ol></details>
+      <div id="px-errores" class="error" hidden style="margin-top:12px"></div>
+      <div class="pie">
+        <button class="boton" id="px-probar" type="button">Enviar evento de prueba</button>
+        <button class="boton primario" id="px-guardar" type="button">Guardar</button>
+      </div>
+    </div>
+
+    <div class="carta">
+      <div class="cab">
+        <div class="logo" style="background:#0f9d58">▦</div>
+        <div class="crece"><h2>Google Sheets</h2><p class="ayuda" style="margin:0">Cada pedido real se agrega a la pestaña del mes de tu hoja «Rebajitas».</p></div>
+      </div>
+      <p class="estado" id="hoja" style="margin:12px 0 0">Revisando…</p>
+      <p class="ayuda">Se configura en Render (SHEETS_URL y SHEETS_CLAVE). Ver LEEME.md.</p>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  function esc(t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function avisar(t, e) { if (window.shopify && shopify.toast) shopify.toast.show(t, { isError: !!e }); else alert(t); }
+  function api(ruta, op) {
+    op = op || {};
+    var tk = (window.shopify && shopify.idToken) ? shopify.idToken() : Promise.resolve("");
+    return tk.then(function (t) {
+      op.headers = Object.assign({ "Content-Type": "application/json" }, t ? { Authorization: "Bearer " + t } : {});
+      return fetch(ruta, op);
+    }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); });
+  }
+  function pintar(p) {
+    $("#px-activo").checked = !!p.activo; $("#px-ids").value = p.ids || ""; $("#px-moneda").value = p.moneda;
+    $("#px-ic").checked = !!p.iniciar_compra; $("#px-codigo").value = p.codigo_prueba || ""; $("#px-token").value = "";
+    $("#px-token-estado").innerHTML = p.token_guardado
+      ? "Guardado: " + esc(p.token_guardado) + ' · <a href="#" id="px-borrar">quitar token</a>'
+      : "Sin token: solo se usará el píxel del navegador.";
+    var b = $("#px-borrar");
+    if (b) b.addEventListener("click", function (e) { e.preventDefault(); guardar(true); });
+  }
+  function errores(lista) { $("#px-errores").innerHTML = (lista || []).map(esc).join("<br>"); $("#px-errores").hidden = !(lista && lista.length); }
+  function guardar(borrar) {
+    errores([]);
+    var b = $("#px-guardar"); b.disabled = true; b.textContent = "Guardando…";
+    api("/panel-api/integraciones/pixel", { method: "PUT", body: JSON.stringify({
+      activo: $("#px-activo").checked, ids: $("#px-ids").value, moneda: $("#px-moneda").value,
+      iniciar_compra: $("#px-ic").checked, codigo_prueba: $("#px-codigo").value, token: $("#px-token").value, borrar_token: !!borrar
+    }) }).then(function (r) {
+      if (!r.ok) { errores(r.j.errores || [r.j.error || "No se pudo guardar"]); avisar("Revisa los datos del píxel", true); return; }
+      pintar(r.j.pixel); avisar("Píxel guardado");
+    }).catch(function () { avisar("No se pudo guardar", true); })
+      .then(function () { b.disabled = false; b.textContent = "Guardar"; });
+  }
+  $("#px-guardar").addEventListener("click", function () { guardar(false); });
+  $("#px-probar").addEventListener("click", function () {
+    var b = $("#px-probar"); b.disabled = true;
+    api("/panel-api/integraciones/pixel/prueba", { method: "POST", body: JSON.stringify({ codigo_prueba: $("#px-codigo").value }) })
+      .then(function (r) { avisar(r.j.mensaje || r.j.error || "Listo", !r.ok); if (!r.ok) errores([r.j.mensaje || r.j.error]); })
+      .then(function () { b.disabled = false; });
+  });
+  api("/panel-api/integraciones").then(function (r) {
+    if (!r.ok) { errores([r.j.error || "No pudimos cargar la configuración"]); return; }
+    $("#px-moneda").innerHTML = r.j.monedas.map(function (m) { return "<option>" + m + "</option>"; }).join("");
+    pintar(r.j.pixel);
+    $("#hoja").innerHTML = (r.j.sheets.ok ? '<span class="ok">✔ ' : '<span class="mal">✖ ') + esc(r.j.sheets.texto) + "</span>";
+  });
+})();
+</script>
+</body>
+</html>

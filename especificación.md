@@ -21,6 +21,14 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - La app "Rebajitas Form" tiene menú en la barra lateral de Shopify: **Inicio** (estado de conexiones) y **Ofertas**. Se arma con App Bridge (`<ui-nav-menu>`).
 - Solo se puede usar desde el panel de Shopify de la tienda: los datos (`/panel-api/*`) exigen el token de sesión de Shopify, firmado con el secreto de la app (`sesion.py`): se revisan firma, vencimiento, app (aud) y tienda (dest). Las páginas solo se pueden mostrar dentro del panel de esta tienda (cabecera frame-ancestors).
 
+## Menú Integraciones
+- **Píxel de Meta**: ID(s) del píxel (hasta 5), moneda que ve Meta (VES por defecto; los montos van en bolívares), interruptor de InitiateCheckout.
+  - Navegador: al abrir el formulario `InitiateCheckout`; al crear el pedido `Purchase` con value, currency, content_ids (número de producto), num_items, order_id y eventID `rcod-<número de pedido>`. Si la tienda no tiene el código de Meta, el formulario lo carga.
+  - API de conversiones (opcional, con token de Meta): el servidor manda el mismo `Purchase` con el mismo event_id (Meta lo cuenta una vez), con teléfono, nombre, apellido, ciudad y país cifrados (SHA-256), IP, navegador y cookies _fbp/_fbc. No se manda en modo prueba.
+  - Botón "Enviar evento de prueba" (con el código de «Probar eventos» de Meta).
+  - El token se guarda en Shopify como dato propio de la app; nunca se manda al navegador (el menú solo muestra sus últimas 4 letras).
+- **Google Sheets**: muestra el estado de la conexión (se configura en Render).
+
 ## Menú Ofertas
 - Lista de productos de la tienda (busca por nombre) con el estado de sus ofertas. Al abrir uno: interruptor "Ofertas activas", hasta 6 ofertas, plantilla rápida 1-2-3 (normal, −15 %, −25 %) y vista previa de cómo lo verá el cliente.
 - Cada oferta: cantidad (1–20, sin repetir), precio (normal · precio fijo total · % de descuento), título y texto debajo (opcionales; si no, "N unidades" y "Ahorras …"), etiqueta/sticker con color (negro, verde, rojo, dorado, morado, azul; admite emojis), imagen (una foto del producto o un enlace https) y cuál viene marcada.
@@ -103,7 +111,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 | 1 | Formulario + pedido en Shopify | Hecho en código; falta probar con la tienda real |
 | 2 | Ofertas por cantidad (bundles) | Hecho en código; falta probar con la tienda real |
 | 3 | Bloqueo de teléfonos e IP | Pendiente (necesita base de datos) |
-| 4 | Píxel de Meta (navegador + servidor) | Pendiente |
+| 4 | Píxel de Meta (navegador + servidor) | Hecho (menú Integraciones); falta probar con el píxel real |
 | 5 | Google Sheets directo | Hecho (falta conectar la hoja) |
 
 ## Google Sheets

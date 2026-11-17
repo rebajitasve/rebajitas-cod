@@ -62,3 +62,41 @@ def guardar_producto(producto_id: str, direccion: str, cfg: dict) -> dict:
     with _candado:
         _memoria.update(datos=datos, hora=time.time())
     return datos
+
+
+# ---------- Integraciones (píxel de Meta, etc.) ----------
+# Se guardan igual que las ofertas, en otro dato propio de la app ("integraciones").
+# Ojo: aquí puede ir el token de la API de conversiones; nunca se manda al navegador.
+CLAVE_INTEGRACIONES = "integraciones"
+ARCHIVO_INTEGRACIONES = config.CARPETA / "datos_locales" / "integraciones.json"
+_mem_int = {"datos": None, "hora": 0.0}
+
+
+def leer_integraciones(forzar: bool = False) -> dict:
+    with _candado:
+        if not forzar and _mem_int["datos"] is not None and time.time() - _mem_int["hora"] < SEGUNDOS_MEMORIA:
+            return _mem_int["datos"]
+    try:
+        if _usa_shopify():
+            texto = shopify.leer_dato_app(CLAVE_INTEGRACIONES)
+        else:
+            texto = ARCHIVO_INTEGRACIONES.read_text(encoding="utf-8") if ARCHIVO_INTEGRACIONES.exists() else None
+        datos = json.loads(texto) if texto else {}
+    except (shopify.ErrorShopify, ValueError, OSError) as e:
+        log.warning("No se pudieron leer las integraciones guardadas (%s)", e)
+        with _candado:
+            return _mem_int["datos"] or {}
+    with _candado:
+        _mem_int.update(datos=datos, hora=time.time())
+    return datos
+
+
+def guardar_integraciones(datos: dict) -> None:
+    texto = json.dumps(datos, ensure_ascii=False)
+    if _usa_shopify():
+        shopify.guardar_dato_app(CLAVE_INTEGRACIONES, texto)
+    else:
+        ARCHIVO_INTEGRACIONES.parent.mkdir(exist_ok=True)
+        ARCHIVO_INTEGRACIONES.write_text(texto, encoding="utf-8")
+    with _candado:
+        _mem_int.update(datos=datos, hora=time.time())
