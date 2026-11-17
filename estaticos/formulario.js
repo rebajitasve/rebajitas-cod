@@ -112,7 +112,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 .dot::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent);transform:scale(0);transition:transform .15s}
 .oferta.sel{border-color:var(--accent);background:var(--accent-soft)} .oferta.sel .dot{border-color:var(--accent)} .oferta.sel .dot::after{transform:scale(1)}
 .oferta:focus-within{outline:2px solid var(--accent);outline-offset:2px}
-.o-main{flex:1;min-width:0} .o-name{font-weight:700} .o-save{font-size:12.5px;color:var(--accent);font-weight:600}
+.o-main{flex:1;min-width:0}
+.o-img{width:48px;height:48px;border-radius:10px;flex:none;background:var(--field) center/cover no-repeat} .o-name{font-weight:700} .o-save{font-size:12.5px;color:var(--accent);font-weight:600}
 .o-price{text-align:right;font-variant-numeric:tabular-nums} .o-price b{display:block;font-weight:800} .o-price s{color:var(--muted);font-size:12.5px}
 .badge{position:absolute;top:-9px;right:14px;background:var(--ink);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} .full{grid-column:1/-1}
@@ -158,6 +159,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   var WHATSAPP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#25a35a" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.5.4.1.1.1.7-.1 1.3z"/></svg>';
 
   var datos = null, elegida = 0;
+  var COLOR_ETIQUETA = { negro: "#14181b", verde: "#0d7a50", rojo: "#c2372f", dorado: "#b7862b", morado: "#6b3fa0", azul: "#1f5fbf" };
 
   // UTM de la publicidad: se guardan al llegar a la tienda para enviarlas con el pedido aunque el cliente navegue.
   var UTM = (function () {
@@ -199,7 +201,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       aviso("Bloque encontrado y producto leído: " + d.titulo + " (" + d.ofertas.length + " oferta" + (d.ofertas.length === 1 ? "" : "s") + ")" +
         (d.modo_prueba ? " · modo prueba" : ""), true);
       if (!d.disponible) { aviso("Shopify dice que el producto está agotado: por eso el botón no se muestra.", false); return; }
-      elegida = d.ofertas.length > 1 ? 1 : 0;
+      elegida = Math.max(0, d.ofertas.map(function (o) { return !!o.preseleccionada; }).indexOf(true));
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
       if (d.ocultar_carrito) ocultarCompraDelTema();
@@ -272,10 +274,11 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     var ofertas = d.ofertas.map(function (o, i) {
       var ahorro = o.antes - o.precio;
       return '<label class="oferta"' + (d.ofertas.length === 1 ? ' hidden' : '') + '>' +
-        (o.etiqueta ? '<span class="badge">' + esc(o.etiqueta) + '</span>' : '') +
+        (o.etiqueta ? '<span class="badge" style="background:' + (COLOR_ETIQUETA[o.color] || COLOR_ETIQUETA.negro) + '">' + esc(o.etiqueta) + '</span>' : '') +
         '<input type="radio" name="oferta" value="' + i + '"' + (i === elegida ? ' checked' : '') + '>' +
-        '<span class="dot"></span><span class="o-main"><span class="o-name">' + unidades(o.cantidad) + '</span><br>' +
-        '<span class="o-save">' + (ahorro > 0 ? 'Ahorras ' + dinero(ahorro, d.moneda) : 'Precio normal') + '</span></span>' +
+        '<span class="dot"></span>' + (o.imagen ? '<span class="o-img" style="background-image:url(\'' + esc(o.imagen) + '\')"></span>' : '') +
+        '<span class="o-main"><span class="o-name">' + esc(o.titulo || unidades(o.cantidad)) + '</span><br>' +
+        '<span class="o-save">' + esc(o.subtitulo || (ahorro > 0 ? 'Ahorras ' + dinero(ahorro, d.moneda) : 'Precio normal')) + '</span></span>' +
         '<span class="o-price"><b>' + dinero(o.precio, d.moneda) + '</b>' + (ahorro > 0 ? '<s>' + dinero(o.antes, d.moneda) + '</s>' : '') + '</span></label>';
     }).join("");
     var estados = d.estados.map(function (e) { return '<option>' + esc(e) + '</option>'; }).join("");

@@ -17,6 +17,17 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 4. El servidor valida todo otra vez, decide el precio (nunca confía en el navegador) y crea el pedido en Shopify.
 5. Pantalla final: resumen del pedido y botón verde **"Ir a WhatsApp a confirmar mi pedido"**, que abre el chat con +58 412 225 4027 (sin mensaje escrito: Pancake envía la confirmación automática y el cliente solo la responde). El número se cambia en `reglas.py` (`WHATSAPP_CONFIRMACION`).
 
+## Menú de la app (dentro de Shopify)
+- La app "Rebajitas Form" tiene menú en la barra lateral de Shopify: **Inicio** (estado de conexiones) y **Ofertas**. Se arma con App Bridge (`<ui-nav-menu>`).
+- Solo se puede usar desde el panel de Shopify de la tienda: los datos (`/panel-api/*`) exigen el token de sesión de Shopify, firmado con el secreto de la app (`sesion.py`): se revisan firma, vencimiento, app (aud) y tienda (dest). Las páginas solo se pueden mostrar dentro del panel de esta tienda (cabecera frame-ancestors).
+
+## Menú Ofertas
+- Lista de productos de la tienda (busca por nombre) con el estado de sus ofertas. Al abrir uno: interruptor "Ofertas activas", hasta 6 ofertas, plantilla rápida 1-2-3 (normal, −15 %, −25 %) y vista previa de cómo lo verá el cliente.
+- Cada oferta: cantidad (1–20, sin repetir), precio (normal · precio fijo total · % de descuento), título y texto debajo (opcionales; si no, "N unidades" y "Ahorras …"), etiqueta/sticker con color (negro, verde, rojo, dorado, morado, azul; admite emojis), imagen (una foto del producto o un enlace https) y cuál viene marcada.
+- El precio de lista es el precio de 1 unidad en Shopify; el tachado = lista × cantidad. Los precios se calculan siempre en el servidor (`reglas.calcular_ofertas`).
+- **Dónde se guardan**: en Shopify, como dato propio de la app (metacampo `rebajitas.ofertas` de la instalación de la app; `almacen.py`). Sin base de datos ni costo. En el computador sin llaves: `datos_locales/ofertas.json`. Se guarda copia en memoria 60 s.
+- Configuración inicial (si nunca se guardó nada): `OFERTAS_INICIALES` en `reglas.py` (la maca). Al guardar un producto desde el menú pasa a guardarse por su número de producto.
+
 ## Ofertas (bundles)
 - Se configuran en `reglas.py` (`OFERTAS`) por dirección del producto (`ao-black-maca-potencia-brutal`), nombre o ID de variante.
 - AO Black Maca: 1 unidad Bs.S. 37.500 · 2 unidades Bs.S. 57.500 ("Más vendido", viene marcada) · 3 unidades Bs.S. 65.500 ("Mejor precio").

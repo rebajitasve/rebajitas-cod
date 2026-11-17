@@ -61,7 +61,7 @@ def _consulta(consulta: str, variables: dict, cliente: httpx.Client | None = Non
             cliente.close()
 
 
-PRODUCTO_PRUEBA = {"titulo": "AO Black Maca", "direccion": "ao-black-maca-potencia-brutal", "variante": "", "precio": Decimal("32450.00"),
+PRODUCTO_PRUEBA = {"titulo": "AO Black Maca", "producto_id": "prueba", "direccion": "ao-black-maca-potencia-brutal", "variante": "", "precio": Decimal("32450.00"),
                    "disponible": True, "moneda": "VES"}
 
 
@@ -73,6 +73,61 @@ def permisos(cliente=None) -> set[str]:
     """Permisos que la tienda le dio a la app (ej. write_orders, read_customers)."""
     datos = _consulta("{ currentAppInstallation { accessScopes { handle } } }", {}, cliente)
     return {a["handle"] for a in datos["currentAppInstallation"]["accessScopes"]}
+
+
+def listar_productos(cliente=None) -> list[dict]:
+    """Productos de la tienda para el menú de Ofertas: número, nombre, dirección, precio, estado y fotos."""
+    productos, despues = [], None
+    for _ in range(10):  # hasta 1.000 productos
+        datos = _consulta("""
+            query($after: String) {
+              products(first: 100, after: $after, sortKey: TITLE) {
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                  id title handle status
+                  featuredMedia { preview { image { url } } }
+                  media(first: 12) { nodes { preview { image { url } } } }
+                  variants(first: 1) { nodes { id price } }
+                }
+              }
+            }""", {"after": despues}, cliente)["products"]
+        for p in datos["nodes"]:
+            fotos = [m["preview"]["image"]["url"] for m in p["media"]["nodes"]
+                     if m.get("preview") and m["preview"].get("image")]
+            variante = (p["variants"]["nodes"] or [{}])[0]
+            productos.append({
+                "id": p["id"].rsplit("/", 1)[-1], "titulo": p["title"], "direccion": p["handle"], "estado": p["status"],
+                "precio": str(variante.get("price", "0")), "variante": (variante.get("id") or "").rsplit("/", 1)[-1],
+                "foto": ((p.get("featuredMedia") or {}).get("preview") or {}).get("image", {}).get("url", ""),
+                "fotos": fotos,
+            })
+        if not datos["pageInfo"]["hasNextPage"]:
+            break
+        despues = datos["pageInfo"]["endCursor"]
+    return productos
+
+
+# Datos propios de la app (ej. las ofertas), guardados en Shopify como "metacampo" de la instalación de la app.
+# No necesitan permisos extra y no se ven en la tienda.
+ESPACIO_APP = "rebajitas"
+
+
+def leer_dato_app(clave: str, cliente=None) -> str | None:
+    datos = _consulta("""
+        query($k: String!) { currentAppInstallation { metafield(namespace: "%s", key: $k) { value } } }""" % ESPACIO_APP,
+        {"k": clave}, cliente)
+    campo = datos["currentAppInstallation"]["metafield"]
+    return campo["value"] if campo else None
+
+
+def guardar_dato_app(clave: str, valor_json: str, cliente=None) -> None:
+    dueno = _consulta("{ currentAppInstallation { id } }", {}, cliente)["currentAppInstallation"]["id"]
+    datos = _consulta("""
+        mutation($m: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $m) { userErrors { field message } } }""",
+        {"m": [{"ownerId": dueno, "namespace": ESPACIO_APP, "key": clave, "type": "json", "value": valor_json}]}, cliente)
+    errores = datos["metafieldsSet"]["userErrors"]
+    if errores:
+        raise ErrorShopify("Shopify no guardó los datos: " + "; ".join(e["message"] for e in errores))
 
 
 def probar_conexion(cliente=None) -> str:
@@ -88,7 +143,7 @@ def leer_variante(variante_id: str, cliente=None) -> dict:
         return dict(PRODUCTO_PRUEBA)
     datos = _consulta("""
         query($id: ID!) {
-          productVariant(id: $id) { title price availableForSale product { title handle } }
+          productVariant(id: $id) { title price availableForSale product { id title handle } }
           shop { currencyCode }
         }""", {"id": f"gid://shopify/ProductVariant/{variante_id}"}, cliente)
     v = datos.get("productVariant")
@@ -96,6 +151,7 @@ def leer_variante(variante_id: str, cliente=None) -> dict:
         raise ErrorShopify("Ese producto no existe en la tienda")
     return {
         "titulo": v["product"]["title"],
+        "producto_id": v["product"]["id"].rsplit("/", 1)[-1],
         "direccion": v["product"].get("handle", ""),
         "variante": "" if v["title"] == "Default Title" else v["title"],
         "precio": Decimal(str(v["price"])),

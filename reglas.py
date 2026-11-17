@@ -88,17 +88,21 @@ MAX_NOMBRE = 50
 MAX_DIRECCION = 250
 MAX_REFERENCIA = 300
 
-# Ofertas por cantidad. Clave: dirección del producto (lo que va después de /products/ en la tienda),
-# o nombre del producto en Shopify (sin importar mayúsculas/acentos), o ID de la variante.
-# Cada oferta: cantidad y precio TOTAL. El precio de lista por unidad es el de la oferta de 1 unidad.
-# Si un producto no está aquí, se vende 1 unidad al precio que tenga en Shopify.
-OFERTAS: dict[str, list[dict]] = {
-    "ao-black-maca-potencia-brutal": [
-        {"cantidad": 1, "precio": 37500},
-        {"cantidad": 2, "precio": 57500, "etiqueta": "Más vendido"},
-        {"cantidad": 3, "precio": 65500, "etiqueta": "Mejor precio"},
-    ],
+# ---- Ofertas por cantidad (bundles y descuentos) ----
+# Se crean y editan en el menú "Ofertas" de la app dentro de Shopify, y se guardan en Shopify (ver almacen.py).
+# Esto de aquí es solo la configuración inicial, por si todavía no se ha guardado nada desde el menú.
+OFERTAS_INICIALES: dict[str, dict] = {
+    "ao-black-maca-potencia-brutal": {"activo": True, "ofertas": [
+        {"cantidad": 1, "tipo": "precio", "valor": 37500},
+        {"cantidad": 2, "tipo": "precio", "valor": 57500, "etiqueta": "Más vendido", "preseleccionada": True},
+        {"cantidad": 3, "tipo": "precio", "valor": 65500, "etiqueta": "Mejor precio"},
+    ]},
 }
+
+TIPOS_OFERTA = ("normal", "precio", "porcentaje")   # precio normal · precio fijo total · % de descuento
+COLORES_ETIQUETA = ("negro", "verde", "rojo", "dorado", "morado", "azul")
+MAX_OFERTAS = 6
+MAX_CANTIDAD = 20
 
 # WhatsApp que abre el botón final (el mismo desde donde Pancake escribe). Solo dígitos, con código de país.
 WHATSAPP_CONFIRMACION = "584122254027"
@@ -111,17 +115,89 @@ def _clave(texto: str) -> str:
     return unicodedata.normalize("NFD", texto or "").encode("ascii", "ignore").decode().upper().strip()
 
 
-def ofertas_de(variante_id: str, titulo: str, precio_shopify: Decimal, direccion: str = "") -> list[dict]:
-    """Ofertas que se muestran para un producto. Precios en Decimal, siempre del servidor.
-    'lista' = precio por unidad sin descuento; 'antes' = lista × cantidad (el precio tachado)."""
-    por_clave = {_clave(k): v for k, v in OFERTAS.items()}
-    config = OFERTAS.get(str(variante_id)) or por_clave.get(_clave(direccion)) or por_clave.get(_clave(titulo))
-    if not config:
-        return [{"cantidad": 1, "precio": precio_shopify, "lista": precio_shopify, "antes": precio_shopify, "etiqueta": None}]
-    base = next((o for o in config if o["cantidad"] == 1), config[0])
-    lista = (Decimal(str(base["precio"])) / base["cantidad"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    return [{"cantidad": o["cantidad"], "precio": Decimal(str(o["precio"])), "lista": lista,
-             "antes": lista * o["cantidad"], "etiqueta": o.get("etiqueta")} for o in config]
+def _dinero(valor) -> Decimal:
+    return Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def normalizar_config_producto(cfg: dict) -> tuple[dict, list[str]]:
+    """Revisa la configuración de ofertas de un producto que viene del menú. Devuelve (config limpia, errores)."""
+    errores = []
+    ofertas_in = cfg.get("ofertas") if isinstance(cfg, dict) else None
+    if not isinstance(ofertas_in, list):
+        return {"activo": False, "ofertas": []}, ["Formato de ofertas no válido"]
+    if len(ofertas_in) > MAX_OFERTAS:
+        errores.append(f"Máximo {MAX_OFERTAS} ofertas por producto")
+    limpias, cantidades = [], set()
+    for n, o in enumerate(ofertas_in[:MAX_OFERTAS], start=1):
+        o = o if isinstance(o, dict) else {}
+        try:
+            cantidad = int(o.get("cantidad", 0))
+        except (TypeError, ValueError):
+            cantidad = 0
+        tipo = o.get("tipo") if o.get("tipo") in TIPOS_OFERTA else "normal"
+        try:
+            valor = float(o.get("valor") or 0)
+        except (TypeError, ValueError):
+            valor = -1
+        if not 1 <= cantidad <= MAX_CANTIDAD:
+            errores.append(f"Oferta {n}: la cantidad debe estar entre 1 y {MAX_CANTIDAD}")
+        elif cantidad in cantidades:
+            errores.append(f"Oferta {n}: ya hay otra oferta de {cantidad} unidades")
+        cantidades.add(cantidad)
+        if tipo == "precio" and valor <= 0:
+            errores.append(f"Oferta {n}: escribe el precio total")
+        if tipo == "porcentaje" and not 0 < valor < 100:
+            errores.append(f"Oferta {n}: el descuento debe estar entre 1% y 99%")
+        imagen = limpiar(o.get("imagen"), 500)
+        if imagen and not imagen.startswith("https://"):
+            errores.append(f"Oferta {n}: la imagen debe ser un enlace que empiece por https://")
+            imagen = ""
+        limpias.append({
+            "cantidad": cantidad, "tipo": tipo, "valor": valor if tipo != "normal" else 0,
+            "titulo": limpiar(o.get("titulo"), 60), "subtitulo": limpiar(o.get("subtitulo"), 80),
+            "etiqueta": limpiar(o.get("etiqueta"), 30),
+            "color": o.get("color") if o.get("color") in COLORES_ETIQUETA else "negro",
+            "imagen": imagen, "preseleccionada": bool(o.get("preseleccionada")),
+        })
+    if sum(o["preseleccionada"] for o in limpias) > 1:
+        primero = next(i for i, o in enumerate(limpias) if o["preseleccionada"])
+        for i, o in enumerate(limpias):
+            o["preseleccionada"] = i == primero
+    limpias.sort(key=lambda o: o["cantidad"])
+    return {"activo": bool(cfg.get("activo", True)) and bool(limpias), "ofertas": limpias}, errores
+
+
+def calcular_ofertas(cfg: dict | None, precio_lista: Decimal) -> list[dict]:
+    """Ofertas con precios calculados SIEMPRE en el servidor.
+    precio_lista = precio de 1 unidad en Shopify; 'antes' = lista × cantidad (el precio tachado)."""
+    lista = _dinero(precio_lista)
+    if not cfg or not cfg.get("activo") or not cfg.get("ofertas"):
+        return [{"cantidad": 1, "precio": lista, "lista": lista, "antes": lista, "etiqueta": None, "color": "negro",
+                 "titulo": "", "subtitulo": "", "imagen": "", "preseleccionada": True}]
+    resultado = []
+    for o in sorted(cfg["ofertas"], key=lambda x: int(x.get("cantidad", 1))):
+        cantidad = int(o.get("cantidad", 1))
+        antes = lista * cantidad
+        tipo, valor = o.get("tipo", "normal"), Decimal(str(o.get("valor") or 0))
+        if tipo == "precio" and valor > 0:
+            precio = _dinero(valor)
+        elif tipo == "porcentaje" and 0 < valor < 100:
+            precio = _dinero(antes * (Decimal(100) - valor) / Decimal(100))
+        else:
+            precio = antes
+        resultado.append({"cantidad": cantidad, "precio": precio, "lista": lista, "antes": max(antes, precio),
+                          "etiqueta": o.get("etiqueta") or None, "color": o.get("color", "negro"),
+                          "titulo": o.get("titulo", ""), "subtitulo": o.get("subtitulo", ""),
+                          "imagen": o.get("imagen", ""), "preseleccionada": bool(o.get("preseleccionada"))})
+    if not any(o["preseleccionada"] for o in resultado):
+        resultado[0]["preseleccionada"] = True
+    return resultado
+
+
+def config_de_producto(todas: dict, producto_id: str, direccion: str = "") -> dict | None:
+    """Busca la configuración de un producto por su número en Shopify o, si es antigua, por su dirección (handle)."""
+    productos = (todas or {}).get("productos", {})
+    return productos.get(str(producto_id)) or productos.get(direccion or "")
 
 
 def normalizar_telefono(texto: str) -> str | None:

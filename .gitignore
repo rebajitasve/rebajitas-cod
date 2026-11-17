@@ -8,3 +8,6 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+
+# Datos de prueba en el computador
+datos_locales/

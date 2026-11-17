@@ -17,6 +17,12 @@ import sheets  # noqa: E402
 import shopify  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 import app as servidor  # noqa: E402
+import almacen  # noqa: E402
+
+
+def ofertas_de(_variante, _titulo, precio, direccion=""):
+    """Atajo para las pruebas: ofertas iniciales (las de reglas.py) de un producto por su dirección."""
+    return reglas.calcular_ofertas(reglas.config_de_producto({"productos": reglas.OFERTAS_INICIALES}, "", direccion), precio)
 
 BUENOS = {"nombre": "Juan", "apellido": "Hernández", "telefono": "0412-123.45.67",
           "estado": "Carabobo", "ciudad": "Valencia", "oficina_id": "667", "cedula": "v-12.345.678",
@@ -32,7 +38,7 @@ def limpiar_memoria():
 def test_servidor_modo_prueba():
     c = TestClient(servidor.app)
     assert c.get("/salud").json()["ok"]
-    assert "Rebajitas COD" in c.get("/").text
+    assert "Rebajitas Form" in c.get("/").text
     assert "rebajitas-cod" in c.get("/prueba").text
     assert c.get("/formulario.js").status_code == 200
     prod = c.get("/api/producto/prueba").json()
@@ -72,7 +78,7 @@ def test_shopify_real_simulado(monkeypatch):
         if "productVariant" in cuerpo["query"]:
             return httpx.Response(200, json={"data": {
                 "productVariant": {"title": "Default Title", "price": "32450.00", "availableForSale": True,
-                                   "product": {"title": "AO Black Maca Potencia Brutal", "handle": "ao-black-maca-potencia-brutal"}},
+                                   "product": {"id": "gid://shopify/Product/55", "title": "AO Black Maca Potencia Brutal", "handle": "ao-black-maca-potencia-brutal"}},
                 "shop": {"currencyCode": "VES"}}})
         return httpx.Response(200, json={"data": {"orderCreate": {
             "order": {"id": "gid://shopify/Order/1", "name": "#1001"}, "userErrors": []}}})
@@ -81,16 +87,16 @@ def test_shopify_real_simulado(monkeypatch):
     v = shopify.leer_variante("123", cliente)
     assert v["precio"] == Decimal("32450.00") and v["moneda"] == "VES" and v["variante"] == ""
     datos, _ = reglas.validar_datos(BUENOS)
-    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", reglas.ofertas_de("123", v["titulo"], v["precio"], v["direccion"])[2], "VES", ""), cliente)
+    r = shopify.crear_pedido(reglas.armar_pedido(datos, "123", ofertas_de("123", v["titulo"], v["precio"], v["direccion"])[2], "VES", ""), cliente)
     assert r["numero"] == "#1001"
     assert enviados[1]["variables"]["options"]["sendReceipt"] is False
 
 
 def test_ofertas_ao_black_maca():
-    assert reglas.ofertas_de("999", "AO Black Maca Potencia Brutal", Decimal("32450"), "ao-black-maca-potencia-brutal")[2]["precio"] == Decimal("65500")
-    o = reglas.ofertas_de("999", "Otro nombre", Decimal("32450"), "AO-Black-Maca-Potencia-Brutal")
+    o = ofertas_de("999", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")
     assert [(x["cantidad"], x["precio"], x["antes"]) for x in o] == [
-        (1, Decimal("37500"), Decimal("37500.00")), (2, Decimal("57500"), Decimal("75000.00")), (3, Decimal("65500"), Decimal("112500.00"))]
+        (1, Decimal("37500.00"), Decimal("37500.00")), (2, Decimal("57500.00"), Decimal("75000.00")), (3, Decimal("65500.00"), Decimal("112500.00"))]
+    assert o[1]["preseleccionada"] and o[1]["etiqueta"] == "Más vendido"
     datos, _ = reglas.validar_datos(BUENOS)
     p = reglas.armar_pedido(datos, "999", o[2], "VES", "")
     assert p["lineItems"][0]["quantity"] == 3 and p["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "37500.00"
@@ -107,7 +113,7 @@ def test_modo_prueba_lee_producto_real_pero_no_crea_pedidos(monkeypatch):
         llamadas.append(json.loads(request.content)["query"])
         return httpx.Response(200, json={"data": {
             "productVariant": {"title": "Default Title", "price": "37500.00", "availableForSale": True,
-                               "product": {"title": "AO Black Maca"}},
+                               "product": {"id": "gid://shopify/Product/55", "title": "AO Black Maca", "handle": "ao-black-maca"}},
             "shop": {"currencyCode": "VES"}}})
 
     cliente = httpx.Client(transport=httpx.MockTransport(responder))
@@ -133,7 +139,7 @@ def test_sheets_fila_igual_a_releasit(monkeypatch):
     assert sheets.nombre_hoja(datetime(2026, 11, 16)) == "Tealca COD Noviembre"
     assert sheets.nombre_hoja(datetime(2026, 12, 1)) == "Tealca COD Diciembre"
     datos, _ = reglas.validar_datos(BUENOS)
-    oferta = reglas.ofertas_de("1", "AO", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
+    oferta = ofertas_de("1", "AO", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
     fila = sheets.armar_fila(datos, "AO BLACK MACA - Potencia Brutal", oferta, {"utm_source": "Facebook_Mobile_Feed"},
                              datetime(2026, 11, 1, 0, 16, 0))
     assert fila["fecha"] == "2026-11-01 0:16:00" and fila["nombre"] == "Juan Hernández"
@@ -167,7 +173,7 @@ def test_sheets_solo_en_modo_real(monkeypatch):
 def test_sheets_cedula_y_verificacion(monkeypatch):
     from datetime import datetime
     datos, _ = reglas.validar_datos(BUENOS)
-    fila = sheets.armar_fila(datos, "AO", reglas.ofertas_de("1", "x", Decimal("10"))[0], {}, datetime(2026, 11, 16))
+    fila = sheets.armar_fila(datos, "AO", ofertas_de("1", "x", Decimal("10"))[0], {}, datetime(2026, 11, 16))
     assert fila["cedula"] == "V-12345678"
     monkeypatch.setattr(config, "SHEETS_URL", "https://script.google.com/macros/s/x/exec")
     monkeypatch.setattr(config, "SHEETS_CLAVE", "k")
@@ -205,7 +211,7 @@ def test_cliente_buscar_o_crear(monkeypatch):
 
 def test_pedido_requiere_envio():
     datos, _ = reglas.validar_datos(BUENOS)
-    p = reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
+    p = reglas.armar_pedido(datos, "1", ofertas_de("1", "x", Decimal("10"))[0], "VED", "")
     assert p["lineItems"][0]["requiresShipping"] is True
 
 
@@ -277,7 +283,7 @@ def atributos(p):
 def test_pedido_tealca_informacion_adicional():
     datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "687", "telefono": "0414-123.45.67"})
     assert not errores
-    oferta = reglas.ofertas_de("1", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
+    oferta = ofertas_de("1", "x", Decimal("37500"), "ao-black-maca-potencia-brutal")[1]
     p = reglas.armar_pedido(datos, "1", oferta, "VED", "1.2.3.4", {"utm_source": "Facebook_Mobile_Feed"})
     a = atributos(p)
     assert a["Oficina DroPanas ID"] == "687" and a["Estado DroPanas ID"] == "23" and a["Ciudad DroPanas ID"] == "487"
@@ -295,7 +301,7 @@ def test_pedido_domicilio_caracas_y_miranda():
             "referencia": "Frente a la panadería"}
     datos, errores = reglas.validar_datos({**base, "estado": "Distrito Capital", "ciudad": "Caracas"})
     assert not errores and datos["domicilio"]
-    a = atributos(reglas.armar_pedido(datos, "1", reglas.ofertas_de("1", "x", Decimal("10"))[0], "VED", ""))
+    a = atributos(reglas.armar_pedido(datos, "1", ofertas_de("1", "x", Decimal("10"))[0], "VED", ""))
     assert a["Tipo de entrega"] == "Entrega a domicilio" and a["Estado DroPanas ID"] == "24" and a["Ciudad DroPanas ID"] == "149"
     assert a["Dirección"].startswith("Av. Urdaneta") and a["Punto de referencia"] == "Frente a la panadería"
     assert "Oficina DroPanas ID" not in a
@@ -308,3 +314,73 @@ def test_pedido_domicilio_caracas_y_miranda():
     # El Junquito (Distrito Capital) sigue siendo retiro en oficina
     datos, errores = reglas.validar_datos({**BUENOS, "oficina_id": "1036"})
     assert not errores and not datos["domicilio"] and datos["ciudad"] == "El Junquito"
+
+
+
+# ---------- Menú de Ofertas ----------
+
+def test_calcular_ofertas_tipos():
+    cfg = {"activo": True, "ofertas": [{"cantidad": 1}, {"cantidad": 2, "tipo": "porcentaje", "valor": 20, "preseleccionada": True},
+                                       {"cantidad": 3, "tipo": "precio", "valor": 70000, "etiqueta": "Mayor ahorro", "color": "verde"}]}
+    o = reglas.calcular_ofertas(cfg, Decimal("29450"))
+    assert [(x["cantidad"], x["precio"], x["antes"]) for x in o] == [
+        (1, Decimal("29450.00"), Decimal("29450.00")), (2, Decimal("47120.00"), Decimal("58900.00")), (3, Decimal("70000.00"), Decimal("88350.00"))]
+    assert o[1]["preseleccionada"] and o[2]["color"] == "verde"
+    assert len(reglas.calcular_ofertas({**cfg, "activo": False}, Decimal("10"))) == 1
+    assert reglas.calcular_ofertas(None, Decimal("10"))[0]["precio"] == Decimal("10.00")
+
+
+def test_normalizar_config_rechaza_errores():
+    _, e = reglas.normalizar_config_producto({"ofertas": [{"cantidad": 2}, {"cantidad": 2}]})
+    assert any("ya hay otra" in x for x in e)
+    _, e = reglas.normalizar_config_producto({"ofertas": [{"cantidad": 1, "tipo": "porcentaje", "valor": 120}]})
+    assert any("descuento" in x for x in e)
+    _, e = reglas.normalizar_config_producto({"ofertas": [{"cantidad": 1, "tipo": "precio", "valor": 0}]})
+    assert any("precio total" in x for x in e)
+    _, e = reglas.normalizar_config_producto({"ofertas": [{"cantidad": 1, "imagen": "javascript:alert(1)"}]})
+    assert any("https" in x for x in e)
+    cfg, e = reglas.normalizar_config_producto({"activo": True, "ofertas": [
+        {"cantidad": 3, "preseleccionada": True}, {"cantidad": 1, "preseleccionada": True, "color": "inventado"}]})
+    assert not e and [o["cantidad"] for o in cfg["ofertas"]] == [1, 3]
+    assert sum(o["preseleccionada"] for o in cfg["ofertas"]) == 1 and cfg["ofertas"][0]["color"] == "negro"
+
+
+def test_panel_guardar_y_usar_ofertas(tmp_path, monkeypatch):
+    monkeypatch.setattr(almacen, "ARCHIVO_LOCAL", tmp_path / "ofertas.json")
+    almacen._memoria.update(datos=None, hora=0)
+    c = TestClient(servidor.app)
+    assert "Ofertas" in c.get("/panel/ofertas").text and "frame-ancestors" in c.get("/panel/ofertas").headers["content-security-policy"]
+    productos = c.get("/panel-api/productos").json()["productos"]
+    assert productos[0]["config"]["ofertas"]  # la maca de ejemplo trae sus ofertas iniciales
+    r = c.put("/panel-api/ofertas/prueba", json={"direccion": "ao-black-maca-potencia-brutal", "config": {"activo": True, "ofertas": [
+        {"cantidad": 1}, {"cantidad": 2, "tipo": "porcentaje", "valor": 10, "titulo": "Dúo", "etiqueta": "Oferta", "preseleccionada": True}]}})
+    assert r.status_code == 200
+    guardado = json.loads((tmp_path / "ofertas.json").read_text(encoding="utf-8"))
+    assert "prueba" in guardado["productos"] and "ao-black-maca-potencia-brutal" not in guardado["productos"]
+    prod = c.get("/api/producto/prueba").json()  # el formulario usa lo guardado
+    assert [(o["cantidad"], o["precio"], o["titulo"]) for o in prod["ofertas"]] == [(1, 32450.0, ""), (2, 58410.0, "Dúo")]
+    r = c.put("/panel-api/ofertas/prueba", json={"config": {"ofertas": [{"cantidad": 0}]}})
+    assert r.status_code == 422
+    almacen._memoria.update(datos=None, hora=0)
+
+
+def test_panel_exige_sesion_de_shopify(monkeypatch):
+    import base64, hashlib, hmac, time as _t
+    monkeypatch.setattr(config, "MODO_PRUEBA", False)
+    monkeypatch.setattr(config, "SHOPIFY_TIENDA", "tienda.myshopify.com")
+    monkeypatch.setattr(config, "SHOPIFY_CLIENT_ID", "cliente123")
+    monkeypatch.setattr(config, "SHOPIFY_CLIENT_SECRET", "secreto")
+    monkeypatch.setattr(shopify, "listar_productos", lambda: [])
+    c = TestClient(servidor.app)
+    assert c.get("/panel-api/productos").status_code == 401
+
+    def token(**cambios):
+        b = lambda d: base64.urlsafe_b64encode(json.dumps(d).encode()).rstrip(b"=").decode()
+        datos = {"aud": "cliente123", "dest": "https://tienda.myshopify.com", "exp": _t.time() + 60, "nbf": _t.time() - 5, **cambios}
+        cab, cue = b({"alg": "HS256", "typ": "JWT"}), b(datos)
+        firma = base64.urlsafe_b64encode(hmac.new(b"secreto", f"{cab}.{cue}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+        return f"{cab}.{cue}.{firma}"
+    ok = c.get("/panel-api/productos", headers={"Authorization": "Bearer " + token()})
+    assert ok.status_code == 200
+    for malo in (token(aud="otra"), token(dest="https://otra.myshopify.com"), token(exp=_t.time() - 100), token()[:-3] + "abc"):
+        assert c.get("/panel-api/productos", headers={"Authorization": "Bearer " + malo}).status_code == 401

@@ -9,8 +9,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
+import almacen
 import config
 import reglas
+import sesion
 import sheets
 import shopify
 
@@ -45,6 +47,87 @@ def _numero(valor: Decimal) -> float:
     return float(valor)
 
 
+# ---------- Menú de la app dentro de Shopify ----------
+# Las páginas del menú se abren dentro del panel de Shopify (App Bridge). Los datos se piden a /panel-api/*,
+# que exige la sesión de Shopify (sesion.py). El ID de cliente de la app es público; el secreto nunca sale del servidor.
+
+def cabecera_panel(titulo: str) -> str:
+    return f"""<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="shopify-api-key" content="{escape(config.SHOPIFY_CLIENT_ID)}">
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+<title>{escape(titulo)} · Rebajitas Form</title>
+<ui-nav-menu><a href="/" rel="home">Inicio</a><a href="/panel/ofertas">Ofertas</a></ui-nav-menu>"""
+
+
+def respuesta_panel(html: str) -> HTMLResponse:
+    # Solo el panel de Shopify de esta tienda puede mostrar estas páginas dentro de un marco.
+    return HTMLResponse(html, headers={"Content-Security-Policy":
+                                       f"frame-ancestors https://{config.SHOPIFY_TIENDA} https://admin.shopify.com;"})
+
+
+def sesion_panel(request: Request) -> None:
+    """Exige la sesión de Shopify. Solo en el computador (modo prueba y sin llaves) se deja pasar para probar."""
+    if config.MODO_PRUEBA and not shopify.hay_llaves():
+        return
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    sesion.verificar(token)
+
+
+@app.exception_handler(sesion.SesionInvalida)
+def _sesion_invalida(request: Request, e: sesion.SesionInvalida):
+    return JSONResponse({"error": str(e)}, status_code=401)
+
+
+@app.get("/panel/ofertas", response_class=HTMLResponse)
+def panel_ofertas():
+    html = (ESTATICOS / "panel" / "ofertas.html").read_text(encoding="utf-8")
+    return respuesta_panel(html.replace("<!--CABECERA-->", cabecera_panel("Ofertas")))
+
+
+@app.get("/panel/panel.js")
+def panel_js():
+    return FileResponse(ESTATICOS / "panel" / "panel.js", media_type="application/javascript; charset=utf-8",
+                        headers={"Cache-Control": "no-cache"})
+
+
+PRODUCTOS_PRUEBA = [{"id": "prueba", "titulo": "AO Black Maca (ejemplo)", "direccion": "ao-black-maca-potencia-brutal",
+                     "estado": "ACTIVE", "precio": "37500.00", "variante": "prueba", "foto": "", "fotos": []},
+                    {"id": "prueba-2", "titulo": "Creatina (ejemplo)", "direccion": "creatina", "estado": "ACTIVE",
+                     "precio": "29450.00", "variante": "prueba", "foto": "", "fotos": []}]
+
+
+@app.get("/panel-api/productos")
+def panel_productos(request: Request):
+    sesion_panel(request)
+    try:
+        productos = shopify.listar_productos() if shopify.hay_llaves() else PRODUCTOS_PRUEBA
+    except shopify.ErrorShopify as e:
+        log.warning("No se pudieron listar los productos: %s", e)
+        return JSONResponse({"error": "No pudimos leer los productos de Shopify"}, status_code=502)
+    guardadas = almacen.leer(forzar=True)
+    for p in productos:
+        cfg = reglas.config_de_producto(guardadas, p["id"], p["direccion"])
+        p["config"] = cfg or {"activo": False, "ofertas": []}
+    return {"productos": productos, "moneda": "VED", "colores": reglas.COLORES_ETIQUETA,
+            "maximo": reglas.MAX_OFERTAS, "max_cantidad": reglas.MAX_CANTIDAD}
+
+
+@app.put("/panel-api/ofertas/{producto_id}")
+async def panel_guardar_ofertas(producto_id: str, request: Request):
+    sesion_panel(request)
+    cuerpo = await request.json()
+    cfg, errores = reglas.normalizar_config_producto(cuerpo.get("config") or {})
+    if errores:
+        return JSONResponse({"errores": errores}, status_code=422)
+    try:
+        almacen.guardar_producto(producto_id, str(cuerpo.get("direccion") or ""), cfg)
+    except shopify.ErrorShopify as e:
+        log.error("No se guardaron las ofertas de %s: %s", producto_id, e)
+        return JSONResponse({"error": "Shopify no guardó las ofertas. Intenta de nuevo."}, status_code=502)
+    log.info("Ofertas guardadas para el producto %s (%s ofertas, activo=%s)", producto_id, len(cfg["ofertas"]), cfg["activo"])
+    return {"ok": True, "config": cfg}
+
+
 @app.get("/", response_class=HTMLResponse)
 def inicio():
     """Pantalla que se ve al abrir la app desde el panel de Shopify."""
@@ -66,17 +149,17 @@ def inicio():
     hoja_ok, hoja_txt = sheets.verificar()
     hoja = ("✔ " if hoja_ok else "✖ ") + "Google Sheets: " + hoja_txt
     color = "#0d7a50" if ok else "#c2372f"
-    return f"""<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rebajitas COD</title>
+    return respuesta_panel(f"""<!doctype html><html lang="es"><head>{cabecera_panel("Inicio")}</head>
 <body style="font-family:system-ui,sans-serif;background:#f4f7f5;color:#14181b;margin:0;padding:32px 16px">
 <div style="max-width:520px;margin:auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.06)">
-<h1 style="margin:0 0 16px;font-size:22px">Rebajitas COD</h1>
+<h1 style="margin:0 0 16px;font-size:22px">Rebajitas Form</h1>
 <p style="margin:8px 0;color:{color};font-weight:700">{"✔" if ok else "✖"} {escape(conexion)}</p>
 <p style="margin:8px 0;font-weight:600">{modo}</p>
 <p style="margin:8px 0">{escape(clientes)}</p>
 <p style="margin:8px 0">{escape(hoja)}</p>
-<p style="margin:16px 0 0;color:#5d6865;font-size:14px">Esta app maneja el botón "Pagar al recibir" de la tienda. No hay nada que configurar aquí.</p>
-</div></body></html>"""
+<p style="margin:16px 0 0;color:#5d6865;font-size:14px">Esta app maneja el botón "Pagar al recibir" de la tienda.
+Las ofertas por producto se configuran en el menú <b>Ofertas</b>.</p>
+</div></body></html>""")
 
 
 @app.get("/salud")
@@ -104,11 +187,13 @@ def producto(variante: str):
     except shopify.ErrorShopify as e:
         log.warning("No se pudo leer la variante %s: %s", variante, e)
         return JSONResponse({"error": "No pudimos cargar el producto"}, status_code=502)
-    ofertas = reglas.ofertas_de(variante, v["titulo"], v["precio"], v.get("direccion", ""))
+    ofertas = reglas.calcular_ofertas(
+        reglas.config_de_producto(almacen.leer(), v.get("producto_id", ""), v.get("direccion", "")), v["precio"])
     return {
         "titulo": v["titulo"], "variante": v["variante"], "disponible": v["disponible"], "moneda": v["moneda"],
         "ofertas": [{"cantidad": o["cantidad"], "precio": _numero(o["precio"]), "antes": _numero(o["antes"]),
-                     "etiqueta": o["etiqueta"]} for o in ofertas],
+                     "etiqueta": o["etiqueta"], "color": o["color"], "titulo": o["titulo"], "subtitulo": o["subtitulo"],
+                     "imagen": o["imagen"], "preseleccionada": o["preseleccionada"]} for o in ofertas],
         "estados": reglas.ESTADOS,
         # Oficinas para el formulario: número (DroPanas), estado, ciudad, nombre para el cliente, dirección y horario.
         "oficinas": [{"id": o["id"], "e": o["estado"], "c": o["ciudad"], "n": o["nombre"], "d": o["direccion"], "h": o["horario"]}
@@ -154,7 +239,8 @@ async def pedido(request: Request):
         v = shopify.leer_variante(variante)
         if not v["disponible"]:
             return JSONResponse({"error": "Este producto está agotado por ahora."}, status_code=409)
-        ofertas = reglas.ofertas_de(variante, v["titulo"], v["precio"], v.get("direccion", ""))
+        ofertas = reglas.calcular_ofertas(
+            reglas.config_de_producto(almacen.leer(), v.get("producto_id", ""), v.get("direccion", "")), v["precio"])
         try:
             oferta = ofertas[int(cuerpo.get("oferta", 0))]
         except (ValueError, IndexError, TypeError):

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!--CABECERA-->
+<style>
+  :root{--fondo:#f1f2f4;--carta:#fff;--tinta:#1a1c1d;--suave:#616a75;--linea:#e1e3e5;--campo:#fff;--acento:#0d7a50;--acento-suave:#e3f3ec;
+    --peligro:#c2372f;--foco:#2c6ecb;--r:12px;font-family:-apple-system,BlinkMacSystemFont,"San Francisco","Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fondo);color:var(--tinta);font-size:14px;line-height:1.45}
+  .pagina{max-width:1100px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 60px}
+  h1{font-size:20px;margin:0}
+  h2{font-size:15px;margin:0}
+  .barra{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .barra .crece{flex:1;min-width:0}
+  .ayuda{color:var(--suave);font-size:13px;margin:4px 0 0}
+  .carta{background:var(--carta);border-radius:var(--r);box-shadow:0 1px 0 rgba(26,26,26,.07),0 0 0 1px rgba(26,26,26,.06);padding:16px}
+  .boton{border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:#fff;color:var(--tinta);
+    box-shadow:0 0 0 1px var(--linea),0 1px 0 rgba(0,0,0,.05)}
+  .boton:hover{background:#f6f6f7}
+  .boton.primario{background:var(--tinta);color:#fff;box-shadow:none}
+  .boton.primario:hover{background:#303030}
+  .boton.primario[disabled]{opacity:.5;cursor:default}
+  .boton.chico{padding:5px 10px;font-size:13px}
+  .boton.fantasma{box-shadow:none;background:transparent;color:var(--suave)}
+  .boton.peligro{color:var(--peligro)}
+  .boton:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--foco);outline-offset:1px}
+  input,select{font:inherit;color:var(--tinta);background:var(--campo);border:1px solid #c9cccf;border-radius:8px;padding:7px 10px;width:100%;min-width:0}
+  input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--tinta)}
+  label.campo{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;min-width:0}
+  .buscar{max-width:360px}
+  .lista{display:flex;flex-direction:column}
+  .fila{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--linea);cursor:pointer;border-radius:8px}
+  .fila:last-child{border-bottom:0}
+  .fila:hover{background:#f7f7f8}
+  .mini{width:44px;height:44px;border-radius:8px;background:#eef0f2 center/cover no-repeat;flex:none;border:1px solid var(--linea)}
+  .fila .txt{flex:1;min-width:0}
+  .fila .nombre{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef0f2;color:var(--suave);white-space:nowrap}
+  .chip.si{background:var(--acento-suave);color:var(--acento)}
+  .chip.borrador{background:#fff4d6;color:#7a5600}
+  .vacio{color:var(--suave);padding:24px;text-align:center}
+  .editor{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:900px){.editor{grid-template-columns:1fr}}
+  .ofertas{display:flex;flex-direction:column;gap:12px}
+  .of{border:1px solid var(--linea);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .of-cab{display:flex;align-items:center;gap:8px}
+  .of-cab b{flex:1}
+  .rejilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .rejilla.dos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media (max-width:560px){.rejilla,.rejilla.dos{grid-template-columns:1fr}}
+  .fotos{display:flex;gap:6px;flex-wrap:wrap}
+  .fotos button{width:44px;height:44px;border-radius:8px;border:2px solid transparent;background:#eef0f2 center/cover no-repeat;cursor:pointer;padding:0}
+  .fotos button.sel{border-color:var(--tinta)}
+  .fotos .ninguna{font-size:11px;color:var(--suave);background:#f6f6f7}
+  .pegado{position:sticky;top:12px}
+  .previa{background:#fff;border-radius:16px;padding:16px;border:1px solid var(--linea)}
+  .previa .sec{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5d6865}
+  .p-of{position:relative;display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid #dfe5e2;border-radius:14px;margin-bottom:10px}
+  .p-of.sel{border-color:#0d7a50;background:#e3f3ec}
+  .p-dot{width:18px;height:18px;border-radius:50%;border:2px solid #b9c4bf;flex:none}
+  .p-of.sel .p-dot{border-color:#0d7a50;box-shadow:inset 0 0 0 3px #e3f3ec;background:#0d7a50}
+  .p-img{width:44px;height:44px;border-radius:10px;background:#eef0f2 center/cover no-repeat;flex:none}
+  .p-main{flex:1;min-width:0}
+  .p-name{font-weight:700}
+  .p-save{font-size:12px;color:#0d7a50;font-weight:600}
+  .p-price{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .p-price b{display:block}
+  .p-price s{color:#5d6865;font-size:12px}
+  .p-badge{position:absolute;top:-9px;right:12px;color:#fff;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .aviso{background:#fff4d6;color:#5c4100;border-radius:10px;padding:10px 12px;font-size:13px}
+  .error{background:#fdecea;color:var(--peligro);border-radius:10px;padding:10px 12px;font-size:13px}
+  .interruptor{display:flex;align-items:center;gap:8px;font-weight:600}
+  .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+  [hidden],ui-nav-menu{display:none!important}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <section id="vista-lista">
+    <div class="barra">
+      <div class="crece"><h1>Ofertas</h1><p class="ayuda">Crea ofertas por cantidad (bundles) y descuentos para cada producto. Los precios se calculan siempre en el servidor.</p></div>
+    </div>
+    <div class="carta">
+      <div class="barra"><input id="buscar" class="buscar" type="search" placeholder="Buscar producto" aria-label="Buscar producto"></div>
+      <div id="lista" class="lista"><div class="vacio">Cargando productos…</div></div>
+    </div>
+  </section>
+
+  <section id="vista-editor" hidden>
+    <div class="barra">
+      <button class="boton fantasma" id="volver" type="button">← Productos</button>
+      <div class="mini" id="ed-foto"></div>
+      <div class="crece"><h1 id="ed-titulo"></h1><p class="ayuda" id="ed-precio"></p></div>
+    </div>
+    <div class="editor">
+      <div class="carta">
+        <div class="barra">
+          <label class="interruptor"><input type="checkbox" id="ed-activo"> Ofertas activas en este producto</label>
+          <div class="crece"></div>
+          <button class="boton chico" id="ed-plantilla" type="button">Usar plantilla 1-2-3</button>
+        </div>
+        <p class="ayuda" style="margin:0 0 12px">Si están apagadas, el producto se vende de a 1 unidad a su precio de Shopify.</p>
+        <div id="ed-ofertas" class="ofertas"></div>
+        <div class="barra" style="margin-top:12px"><button class="boton" id="ed-agregar" type="button">+ Agregar oferta</button></div>
+        <div id="ed-errores" class="error" hidden></div>
+      </div>
+      <div class="pegado">
+        <div class="carta">
+          <h2 style="margin-bottom:10px">Así lo verá el cliente</h2>
+          <div class="previa"><p class="sec">Elige tu oferta</p><div id="ed-previa"></div></div>
+        </div>
+        <div class="pie">
+          <button class="boton" id="ed-cancelar" type="button">Descartar cambios</button>
+          <button class="boton primario" id="ed-guardar" type="button">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="/panel/panel.js"></script>
+</body>
+</html>
