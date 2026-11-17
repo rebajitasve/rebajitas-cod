@@ -48,11 +48,17 @@ def _numero(valor: Decimal) -> float:
 @app.get("/", response_class=HTMLResponse)
 def inicio():
     """Pantalla que se ve al abrir la app desde el panel de Shopify."""
+    clientes = ""
     if not shopify.hay_llaves():
         conexion, ok = "Faltan las llaves de Shopify en Render", False
     else:
         try:
             conexion, ok = f"Conectada a la tienda «{shopify.probar_conexion()}»", True
+            tiene = shopify.permisos()
+            faltan = [p for p in ("write_orders", "read_products", "read_customers", "write_customers") if p not in tiene]
+            clientes = ("✔ Permisos completos (pedidos, productos y clientes)" if not faltan else
+                        "✖ Faltan permisos en la app: " + ", ".join(faltan) +
+                        (" (sin esto los pedidos salen «Sin cliente»)" if any("customers" in p for p in faltan) else ""))
         except shopify.ErrorShopify as e:
             log.warning("Prueba de conexión fallida: %s", e)
             conexion, ok = "Las llaves no funcionan. Revisa el ID y el secreto del cliente en Render", False
@@ -67,6 +73,7 @@ def inicio():
 <h1 style="margin:0 0 16px;font-size:22px">Rebajitas COD</h1>
 <p style="margin:8px 0;color:{color};font-weight:700">{"✔" if ok else "✖"} {escape(conexion)}</p>
 <p style="margin:8px 0;font-weight:600">{modo}</p>
+<p style="margin:8px 0">{escape(clientes)}</p>
 <p style="margin:8px 0">{escape(hoja)}</p>
 <p style="margin:16px 0 0;color:#5d6865;font-size:14px">Esta app maneja el botón "Pagar al recibir" de la tienda. No hay nada que configurar aquí.</p>
 </div></body></html>"""

@@ -69,6 +69,12 @@ def hay_llaves() -> bool:
     return bool(config.SHOPIFY_TIENDA and (config.SHOPIFY_TOKEN or (config.SHOPIFY_CLIENT_ID and config.SHOPIFY_CLIENT_SECRET)))
 
 
+def permisos(cliente=None) -> set[str]:
+    """Permisos que la tienda le dio a la app (ej. write_orders, read_customers)."""
+    datos = _consulta("{ currentAppInstallation { accessScopes { handle } } }", {}, cliente)
+    return {a["handle"] for a in datos["currentAppInstallation"]["accessScopes"]}
+
+
 def probar_conexion(cliente=None) -> str:
     """Lee solo el nombre de la tienda, para confirmar que las llaves funcionan."""
     return _consulta("{ shop { name } }", {}, cliente)["shop"]["name"]

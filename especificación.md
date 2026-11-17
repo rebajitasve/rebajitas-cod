@@ -3,6 +3,12 @@
 ## Objetivo
 Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: botón "Pagar al recibir" en la página del producto, formulario más moderno y pedido creado directamente en Shopify. Los pedidos deben seguir llegando igual a Pancake (confirmación por WhatsApp), Google Sheets y Dropanas.
 
+## En qué productos aparece
+- **Todos los productos**: el código `integraciones/tema-todos-los-productos.liquid` se pega una vez en `layout/theme.liquid` (antes de `</body>`). El botón se coloca solo debajo del formulario de compra del producto (se ignora el formulario de cuotas).
+- Si una plantilla tiene el bloque pegado a mano (como la maca), se usa ese y el automático se descarta.
+- Productos con variantes: el formulario usa la variante elegida en la página (se recarga precio y ofertas al cambiarla).
+- Productos sin ofertas en `reglas.py`: 1 unidad al precio de Shopify, sin sección de ofertas.
+
 ## Cómo funciona
 1. En la página del producto, un bloque "Liquid personalizado" carga `formulario.js` desde el servidor (Render).
 2. El botón muestra el precio que da el servidor (leído de Shopify). Si el servidor no responde, el botón no aparece y la tienda sigue normal.

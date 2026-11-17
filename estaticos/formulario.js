@@ -27,15 +27,35 @@
     l.style.color = ok ? "#7ee2b0" : "#ff9b93";
     b.appendChild(l);
   }
+  // Formulario de compra del producto principal (se ignora el de cuotas que algunos temas tienen).
+  function formProducto() {
+    var forms = [].slice.call(document.querySelectorAll('form[action*="/cart/add"]'))
+      .filter(function (f) { return !/installment/i.test((f.id || "") + " " + (f.className || "")) && f.querySelector('[name="id"]'); });
+    var principal = forms.filter(function (f) { return f.closest("main, #MainContent, .product, product-info"); });
+    return principal[0] || forms[0] || null;
+  }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", arrancar);
   else arrancar();
 
   function arrancar() {
   aviso("El programa del botón cargó desde " + SERVIDOR, true);
-  var raiz = document.getElementById("rebajitas-cod");
-  if (!raiz) { aviso("No encontré el bloque del botón en esta página. Revisa que el bloque esté en la plantilla que usa este producto.", false); return; }
+  // Puede haber un bloque pegado a mano en la plantilla y/o el automático del tema (data-auto).
+  // Gana el pegado a mano; el automático se coloca solo debajo del botón de compra del producto.
+  var raices = [].slice.call(document.querySelectorAll('[id="rebajitas-cod"]'));
+  var manuales = raices.filter(function (r) { return !r.dataset.auto; });
+  var raiz = manuales[0] || raices[0];
+  if (!raiz) { aviso("No encontré el bloque del botón en esta página. Revisa que el código esté en el tema (theme.liquid) o el bloque en la plantilla.", false); return; }
   if (raiz.dataset.listo) return;
-  if (document.querySelectorAll("#rebajitas-cod").length > 1) aviso("El bloque del botón está pegado más de una vez en esta página: deja solo uno.", false);
+  raices.forEach(function (r) { if (r !== raiz && !r.dataset.listo) r.remove(); });
+  if (manuales.length > 1) aviso("El bloque del botón está pegado más de una vez en esta página: deja solo uno.", false);
+  if (raiz.dataset.auto) {
+    var anclaForm = formProducto();
+    if (!anclaForm) { aviso("No encontré el formulario de compra del producto para poner el botón debajo.", false); return; }
+    var ancla = anclaForm.closest("product-form") || anclaForm;
+    ancla.parentNode.insertBefore(raiz, ancla.nextSibling);
+    raiz.hidden = false;
+    raiz.style.marginTop = "12px";
+  }
   raiz.dataset.listo = "1";
   var VARIANTE = raiz.dataset.variante || "";
   var IMAGEN = raiz.dataset.imagen || "";
@@ -147,6 +167,8 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
   sombraBoton.innerHTML = "<style>" + CSS + '</style><div class="w"><button class="abrir" type="button" hidden><b>Pedir ahora · Pago al recibir</b><span>Retiro en TEALCA · Domicilio en Caracas y Miranda</span></button></div>';
   var boton = sombraBoton.querySelector(".abrir");
 
+  function cargar(luegoAbrir) {
+  boton.hidden = true;
   fetch(SERVIDOR + "/api/producto/" + encodeURIComponent(VARIANTE))
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (d) {
@@ -157,6 +179,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       elegida = d.ofertas.length > 1 ? 1 : 0;
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
+      if (luegoAbrir) abrir();
     })
     .catch(function (err) {
       // Si el servidor no responde, no se muestra el botón y la tienda sigue normal.
@@ -166,8 +189,30 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
         : "no se pudo conectar con el servidor (" + SERVIDOR + ") desde esta dirección: " + location.hostname;
       aviso(motivo, false);
     });
+  }
+  cargar(false);
 
-  boton.addEventListener("click", abrir);
+  // Si el producto tiene variantes (talla, sabor…), se usa la que el cliente tenga elegida en la página.
+  function varianteActual() {
+    var f = formProducto(), i = f && f.querySelector('[name="id"]');
+    return (i && i.value) || VARIANTE;
+  }
+  function cambiarVariante(luegoAbrir) {
+    var v = varianteActual();
+    if (!v || v === VARIANTE) return false;
+    VARIANTE = v;
+    datos = null;
+    if (capa) { capa.remove(); capa = null; }
+    cargar(luegoAbrir);
+    return true;
+  }
+  document.addEventListener("change", function (e) {
+    var f = formProducto();
+    if (f && (f.contains(e.target) || (e.target.closest && e.target.closest("variant-selects, variant-radios, .product-form__input")))) {
+      setTimeout(function () { cambiarVariante(false); }, 150);
+    }
+  });
+  boton.addEventListener("click", function () { if (!cambiarVariante(true)) abrir(); });
 
   // ---- Ventana del formulario ----
   var capa = null, sombra = null, ultimoFoco = null, scrollPrevio = "";

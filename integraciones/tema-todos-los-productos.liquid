@@ -1,0 +1,12 @@
+{%- comment -%}
+  Rebajitas COD: botón "Pagar al recibir" en TODOS los productos.
+  Se pega UNA vez en el tema: Tienda online → Temas → ⋯ → Editar código → layout/theme.liquid,
+  justo antes de la línea </body>. El botón se coloca solo debajo del botón de compra.
+  Si una plantilla ya tiene el bloque pegado a mano, se usa ese y este se ignora.
+{%- endcomment -%}
+{%- if template.name == 'product' and product -%}
+  <div id="rebajitas-cod" data-auto="1" hidden
+       data-variante="{{ product.selected_or_first_available_variant.id }}"
+       data-imagen="{{ product.featured_image | image_url: width: 160 }}"></div>
+  <script src="https://rebajitas-cod.onrender.com/formulario.js" defer></script>
+{%- endif -%}

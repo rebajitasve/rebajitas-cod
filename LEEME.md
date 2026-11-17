@@ -26,7 +26,10 @@ Con `MODO_PRUEBA=1` (como viene) el formulario funciona completo pero no toca tu
 
 Revisiones automáticas: `.venv\Scripts\python -m pytest -q pruebas`
 
-## Instalar en la tienda (cuando esté en Render)
+## Instalar en TODOS los productos (recomendado)
+Tienda online → Temas → (tema publicado) ⋯ → **Editar código** → `layout/theme.liquid` → pegar el contenido de `integraciones/tema-todos-los-productos.liquid` justo antes de `</body>` → Guardar.
+
+## Instalar en un solo producto (bloque manual)
 En Shopify: Tienda online → Personalizar → plantilla de producto de AO Black Maca → Agregar bloque → **Liquid personalizado**, y pegar:
 ```
 <div id="rebajitas-cod"
@@ -76,3 +79,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.15 — Primer pedido real OK (#3805). Se enlaza/crea el cliente por teléfono y el pedido queda como "requiere envío".
 - v0.16 — La pestaña del mes se llama "Tealca COD {mes}" (ej. "Tealca COD Noviembre"), nombre real confirmado por Mike. Verificación de la hoja con mensajes más claros.
 - v0.17 — Migración a la tienda nueva de Shopify `ifgcu1-dg.myshopify.com` (la vieja era `e1bvrm-ze.myshopify.com`).
+- v0.18 — Botón en todos los productos con un solo código en theme.liquid (se coloca solo bajo el botón de compra; sigue la variante elegida). La pantalla de la app muestra si faltan permisos (clientes).
