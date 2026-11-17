@@ -54,6 +54,7 @@ El archivo `oficinas_tealca.csv` es el catálogo oficial de DroPanas (`GET /ofic
    `Oficina DroPanas ID, Estado, Estado DroPanas ID, Ciudad, Ciudad DroPanas ID, Nombre en DroPanas, Nombre para el cliente, Código Tealca, Dirección, Horario, Teléfono, Latitud, Longitud, Campo en la orden`.
 2. En GitHub, abre el repositorio `rebajitas-cod` → archivo `oficinas_tealca.csv` → botón de los tres puntos → **Upload / Replace file** (o arrastra el archivo nuevo con el mismo nombre) → **Commit changes**.
 3. Render publica solo en 1–2 minutos. Revisa el formulario: los estados, ciudades y oficinas salen del archivo nuevo.
+- Si el archivo nuevo trae horarios con "am" al cierre (ej. "8:00 am a 4:00 am"), corrígelos: ver especificación.md.
 - No hay que tocar nada más. El formulario nunca busca oficinas por nombre: siempre por su número (Oficina DroPanas ID).
 
 ## Google Sheets
@@ -100,3 +101,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.25 — El botón final "Ir a WhatsApp a confirmar mi pedido" abre el número de Pancake: +58 424 687 5154.
 - v0.26 — Nota del pedido con la línea DROPANAS para el puente POS Cake → DroPanas. La confirmación muestra el pedido guardado en Shopify (arreglo de #1001/#1002). Un pedido solo cuenta como repetido si todos sus datos coinciden.
 - v0.27 — El número de pedido ya no se muestra en la confirmación ni llega al navegador (confidencial).
+- v0.28 — Horarios corregidos en el catálogo: Maracaibo Norte, Merida Norte y El Cementerio ("am" → "pm" al cierre).

@@ -126,11 +126,12 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - La pantalla de la app (`/`) verifica la hoja sin escribir nada y dice en palabras simples qué falla (acceso, clave, pestaña del mes inexistente, código desactualizado).
 - Columnas: A Fecha, B Nombre y Apellido, C Teléfono, D Estado, E Oficina, F Producto, G Cantidad, H Valor a Pagar; P Cédula; T utm_source, U utm_campaign, V utm_medium, W utm_content. Las demás las llena el equipo.
 
-## Catálogo de oficinas: horarios con errores (vienen así de DroPanas)
-- Tealca Maracaibo Norte (701): "Sabados 8:30 am a 1:00 am" (probablemente 1:00 pm).
-- Tealca Merida Norte (2424): "Lunes a Viernes 8:00 am a 04:00 am" (probablemente 4:00 pm).
-- Tealca El Cementerio (1029): "Martes a Viernes 7:00 am a 3:00 am" (probablemente 3:00 pm).
-- El formulario los muestra tal cual vienen del archivo; se corrigen en el catálogo de DroPanas / `oficinas_tealca.csv`.
+## Catálogo de oficinas: horarios corregidos a mano (17-nov-2026)
+Venían mal escritos del catálogo de DroPanas ("am" en vez de "pm" al cierre); se corrigieron en `oficinas_tealca.csv` con autorización de Mike:
+- Tealca Maracaibo Norte (701): Sábados 8:30 am a 1:00 **pm**.
+- Tealca Merida Norte (2424): Lunes a Viernes 8:00 am a 04:00 **pm**.
+- Tealca El Cementerio (1029): Martes a Viernes 7:00 am a 3:00 **pm**.
+- Ojo: si se reemplaza el archivo por uno nuevo de DroPanas, revisar que estos horarios vengan bien (o volver a corregirlos).
 
 ## Datos pendientes de Mike
 - ¿El precio de AO Black Maca en Shopify (Bs.S. 32.450) debe pasar a 37.500? El formulario usa 37.500 de todas formas.
