@@ -80,3 +80,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.16 — La pestaña del mes se llama "Tealca COD {mes}" (ej. "Tealca COD Noviembre"), nombre real confirmado por Mike. Verificación de la hoja con mensajes más claros.
 - v0.17 — Migración a la tienda nueva de Shopify `ifgcu1-dg.myshopify.com` (la vieja era `e1bvrm-ze.myshopify.com`).
 - v0.18 — Botón en todos los productos con un solo código en theme.liquid (se coloca solo bajo el botón de compra; sigue la variante elegida). La pantalla de la app muestra si faltan permisos (clientes).
+- v0.19 — Se ocultan "Add to cart", cantidad y "Comprar ya" del tema cuando nuestro botón carga bien.

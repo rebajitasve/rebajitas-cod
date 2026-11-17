@@ -27,6 +27,21 @@
     l.style.color = ok ? "#7ee2b0" : "#ff9b93";
     b.appendChild(l);
   }
+  // Esconde "Add to cart", la cantidad y "Comprar ya" del tema (solo se llama si nuestro botón ya está visible).
+  function ocultarCompraDelTema() {
+    var f = formProducto();
+    if (!f) return;
+    var cont = f.closest("product-form") || f;
+    var partes = [].slice.call(cont.querySelectorAll('button[name="add"], [type="submit"], .shopify-payment-button, .product-form__buttons'));
+    var cantidad = document.querySelector('.product-form__quantity, quantity-input');
+    if (cantidad) partes.push(cantidad.closest(".product-form__input") || cantidad);
+    var raizBoton = document.getElementById("rebajitas-cod");
+    partes.forEach(function (el) {
+      if (raizBoton && el.contains(raizBoton)) return;  // nunca esconder nuestro propio botón
+      el.style.setProperty("display", "none", "important");
+    });
+  }
+
   // Formulario de compra del producto principal (se ignora el de cuotas que algunos temas tienen).
   function formProducto() {
     var forms = [].slice.call(document.querySelectorAll('form[action*="/cart/add"]'))
@@ -179,6 +194,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       elegida = d.ofertas.length > 1 ? 1 : 0;
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
+      if (d.ocultar_carrito) ocultarCompraDelTema();
       if (luegoAbrir) abrir();
     })
     .catch(function (err) {

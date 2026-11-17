@@ -30,6 +30,9 @@ CODIGO_ESTADO = {
     "Yaracuy": "U", "Zulia": "V", "La Guaira": "X", "Delta Amacuro": "Y", "Amazonas": "Z",
 }
 
+# Ocultar el botón de compra normal del tema ("Add to cart", cantidad y "Comprar ya") cuando nuestro botón cargó bien.
+OCULTAR_CARRITO_TEMA = True
+
 # Forma de pago que muestra Shopify en el pedido (igual que Releasit).
 PASARELA_COD = "Cash on Delivery (COD)"
 

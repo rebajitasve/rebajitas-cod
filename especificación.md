@@ -8,6 +8,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 - Si una plantilla tiene el bloque pegado a mano (como la maca), se usa ese y el automático se descarta.
 - Productos con variantes: el formulario usa la variante elegida en la página (se recarga precio y ofertas al cambiarla).
 - Productos sin ofertas en `reglas.py`: 1 unidad al precio de Shopify, sin sección de ofertas.
+- Se ocultan "Add to cart", la cantidad y "Comprar ya" del tema (`OCULTAR_CARRITO_TEMA` en `reglas.py`), **solo cuando nuestro botón cargó bien**; si el servidor falla, la tienda muestra su botón normal.
 
 ## Cómo funciona
 1. En la página del producto, un bloque "Liquid personalizado" carga `formulario.js` desde el servidor (Render).

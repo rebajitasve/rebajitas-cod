@@ -114,6 +114,7 @@ def producto(variante: str):
         "ciudades": reglas.CIUDADES,
         "domicilio": reglas.ENTREGA_DOMICILIO,
         "whatsapp": reglas.WHATSAPP_CONFIRMACION,
+        "ocultar_carrito": reglas.OCULTAR_CARRITO_TEMA,
         "modo_prueba": config.MODO_PRUEBA,
     }
 
