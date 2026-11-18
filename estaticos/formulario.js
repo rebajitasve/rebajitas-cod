@@ -199,6 +199,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
 
   function cargar(luegoAbrir) {
   boton.hidden = true;
+  if (typeof actualizarFijo === "function") actualizarFijo();
   fetch(SERVIDOR + "/api/producto/" + encodeURIComponent(VARIANTE))
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (d) {
@@ -209,6 +210,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       elegida = Math.max(0, d.ofertas.map(function (o) { return !!o.preseleccionada; }).indexOf(true));
       boton.querySelector("b").textContent = "Pedir ahora · " + dinero(d.ofertas[0].precio, d.moneda);
       boton.hidden = false;
+      prepararFijo();
       if (d.ocultar_carrito) ocultarCompraDelTema();
       if (luegoAbrir) abrir();
     })
@@ -243,7 +245,46 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
       setTimeout(function () { cambiarVariante(false); }, 150);
     }
   });
-  boton.addEventListener("click", function () { if (!cambiarVariante(true)) abrir(); });
+  function alTocar() { if (!cambiarVariante(true)) abrir(); }
+  boton.addEventListener("click", alTocar);
+
+  // ---- Botón fijo abajo (sticky) ----
+  // Aparece cuando el botón de debajo del precio no está a la vista; se esconde con el formulario abierto.
+  var fijo = null, botonFijo = null, botonVisible = true, ventanaAbierta = false;
+  function prepararFijo() {
+    if (!datos || !datos.boton_fijo) return;
+    if (!fijo) {
+      fijo = document.createElement("div");
+      fijo.id = "rebajitas-cod-fijo";
+      fijo.style.setProperty("display", "block", "important");
+      document.body.appendChild(fijo);
+      var sf = fijo.attachShadow({ mode: "open" });
+      sf.innerHTML = "<style>" + CSS + `
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:2147482000;padding:10px max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));
+  background:rgba(255,255,255,.97);box-shadow:0 -8px 24px rgba(0,0,0,.14);transform:translateY(110%);transition:transform .25s ease;pointer-events:none}
+.barra.vis{transform:none;pointer-events:auto}
+.barra .abrir{max-width:560px;margin:0 auto;padding:12px 16px}
+.barra .abrir b{font-size:16px}
+@media (prefers-reduced-motion:reduce){.barra{transition:none}}
+</style><div class="w"><div class="barra" aria-hidden="true"><button class="abrir" type="button" tabindex="-1"><b></b><span></span></button></div></div>`;
+      botonFijo = sf.querySelector(".abrir");
+      botonFijo.addEventListener("click", alTocar);
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (e) { botonVisible = e[0].isIntersecting; actualizarFijo(); }).observe(raiz);
+      }
+    }
+    botonFijo.querySelector("b").textContent = boton.querySelector("b").textContent;
+    botonFijo.querySelector("span").textContent = boton.querySelector("span").textContent;
+    actualizarFijo();
+  }
+  function actualizarFijo() {
+    if (!fijo) return;
+    var mostrar = !boton.hidden && !botonVisible && !ventanaAbierta;
+    var barra = fijo.shadowRoot.querySelector(".barra");
+    barra.classList.toggle("vis", mostrar);
+    barra.setAttribute("aria-hidden", mostrar ? "false" : "true");
+    botonFijo.tabIndex = mostrar ? 0 : -1;
+  }
 
   // ---- Ventana del formulario ----
   var capa = null, sombra = null, ultimoFoco = null, scrollPrevio = "";
@@ -258,6 +299,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     scrollPrevio = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
     requestAnimationFrame(function () { sombra.querySelector(".fondo").classList.add("vis"); });
+    ventanaAbierta = true; actualizarFijo();
     setTimeout(function () { sombra.querySelector("#nombre").focus({ preventScroll: true }); }, 250);
     pixel("abrir");
   }
@@ -265,6 +307,7 @@ form{padding:20px;display:flex;flex-direction:column;gap:22px;margin:0}
     sombra.querySelector(".fondo").classList.remove("vis");
     document.documentElement.style.overflow = scrollPrevio;
     setTimeout(function () { capa.style.setProperty("display", "none", "important"); if (ultimoFoco) ultimoFoco.focus(); }, 200);
+    ventanaAbierta = false; actualizarFijo();
   }
   // ---- Píxel de Meta: InitiateCheckout al abrir, Purchase al crear el pedido ----
   // El Purchase lleva el mismo número de evento que el que manda el servidor (API de conversiones): Meta lo cuenta una vez.

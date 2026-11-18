@@ -103,3 +103,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.27 — El número de pedido ya no se muestra en la confirmación ni llega al navegador (confidencial).
 - v0.28 — Horarios corregidos en el catálogo: Maracaibo Norte, Merida Norte y El Cementerio ("am" → "pm" al cierre).
 - v0.29 — Si el bloque pegado a mano está fuera de la información del producto (caso Pysta: quedaba al final de la página), el botón se mueve solo bajo el precio.
+- v0.30 — Botón fijo abajo (sticky): aparece al bajar por la página cuando el botón de debajo del precio ya no se ve.

@@ -248,6 +248,7 @@ def producto(variante: str):
         "domicilio": reglas.ENTREGA_DOMICILIO,
         "whatsapp": reglas.WHATSAPP_CONFIRMACION,
         "ocultar_carrito": reglas.OCULTAR_CARRITO_TEMA,
+        "boton_fijo": reglas.BOTON_FIJO,
         "pixel": meta.para_navegador(),
         "producto_id": v.get("producto_id", ""),
         "modo_prueba": config.MODO_PRUEBA,

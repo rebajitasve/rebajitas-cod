@@ -52,6 +52,10 @@ CODIGO_ESTADO = {
 # Ocultar el botón de compra normal del tema ("Add to cart", cantidad y "Comprar ya") cuando nuestro botón cargó bien.
 OCULTAR_CARRITO_TEMA = True
 
+# Botón fijo abajo: cuando el cliente baja y el botón (debajo del precio) sale de la pantalla, aparece una barra
+# fija en la parte de abajo con el mismo botón. Se esconde si el botón original está a la vista o el formulario abierto.
+BOTON_FIJO = True
+
 # Forma de pago que muestra Shopify en el pedido (igual que Releasit).
 PASARELA_COD = "Cash on Delivery (COD)"
 

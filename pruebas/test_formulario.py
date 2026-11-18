@@ -475,3 +475,7 @@ def test_confirmacion_muestra_el_pedido_guardado():
     # Cambió la oficina: es un pedido nuevo, y la confirmación muestra la oficina nueva
     d = c.post("/api/pedido", json={**BUENOS, "oficina_id": "701", "telefono": "4141112233"}).json()
     assert not d.get("repetido") and d["entrega"] == "Tealca Maracaibo Norte"
+
+
+def test_boton_fijo_activado():
+    assert TestClient(servidor.app).get("/api/producto/prueba").json()["boton_fijo"] is True
