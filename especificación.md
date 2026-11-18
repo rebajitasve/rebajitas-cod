@@ -5,7 +5,7 @@ Reemplazar Releasit COD en la tienda Shopify de Rebajitas con una app propia: bo
 
 ## En qué productos aparece
 - **Todos los productos**: el código `integraciones/tema-todos-los-productos.liquid` se pega una vez en `layout/theme.liquid` (antes de `</body>`). El botón se coloca solo debajo del formulario de compra del producto (se ignora el formulario de cuotas); si la plantilla no tiene botón de compra (ej. Oxi-Break Uñas), va debajo del precio, o del título.
-- Si una plantilla tiene el bloque pegado a mano (como la maca), se usa ese y el automático se descarta.
+- Si una plantilla tiene el bloque pegado a mano (como la maca), se usa ese y el automático se descarta. Pero si ese bloque está FUERA de la información del producto (ej. una sección "Liquid personalizado" suelta al final de la página, caso Pysta), el botón se mueve solo bajo el botón de compra o el precio.
 - Productos con variantes: el formulario usa la variante elegida en la página (se recarga precio y ofertas al cambiarla).
 - Productos sin ofertas en `reglas.py`: 1 unidad al precio de Shopify, sin sección de ofertas.
 - Se ocultan "Add to cart", la cantidad y "Comprar ya" del tema (`OCULTAR_CARRITO_TEMA` en `reglas.py`), **solo cuando nuestro botón cargó bien**; si el servidor falla, la tienda muestra su botón normal.

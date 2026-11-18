@@ -63,7 +63,12 @@
   if (raiz.dataset.listo) return;
   raices.forEach(function (r) { if (r !== raiz && !r.dataset.listo) r.remove(); });
   if (manuales.length > 1) aviso("El bloque del botón está pegado más de una vez en esta página: deja solo uno.", false);
-  if (raiz.dataset.auto) {
+  // Un bloque pegado a mano FUERA de la información del producto (ej. una sección "Liquid personalizado" suelta
+  // al final de la página, como pasó en Pysta) se trata igual que el automático: se mueve bajo la compra o el precio.
+  var ZONA_PRODUCTO = "product-info, .product__info-container, .product__info-wrapper, .product-single__meta, .product__info";
+  var fueraDeLugar = !raiz.dataset.auto && !raiz.closest(ZONA_PRODUCTO) && document.querySelector(ZONA_PRODUCTO);
+  if (fueraDeLugar) aviso("El bloque del botón estaba fuera de la información del producto: lo moví debajo del botón de compra o del precio.", true);
+  if (raiz.dataset.auto || fueraDeLugar) {
     // Debajo del botón de compra; si la plantilla no lo tiene, debajo del precio o del título del producto.
     var anclaForm = formProducto();
     var ancla = anclaForm ? (anclaForm.closest("product-form") || anclaForm)

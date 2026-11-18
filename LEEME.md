@@ -102,3 +102,4 @@ Para revisar que todo está bien: abrir https://rebajitas-cod.onrender.com (dice
 - v0.26 — Nota del pedido con la línea DROPANAS para el puente POS Cake → DroPanas. La confirmación muestra el pedido guardado en Shopify (arreglo de #1001/#1002). Un pedido solo cuenta como repetido si todos sus datos coinciden.
 - v0.27 — El número de pedido ya no se muestra en la confirmación ni llega al navegador (confidencial).
 - v0.28 — Horarios corregidos en el catálogo: Maracaibo Norte, Merida Norte y El Cementerio ("am" → "pm" al cierre).
+- v0.29 — Si el bloque pegado a mano está fuera de la información del producto (caso Pysta: quedaba al final de la página), el botón se mueve solo bajo el precio.
